@@ -1,0 +1,8 @@
+streamlit>=1.38.0
+Pillow>=10.4.0
+
+# --- Uncomment when the real ML / LLM stack is connected ---
+# torch>=2.3.0
+# torchvision>=0.18.0
+# transformers>=4.44.0
+# requests>=2.32.0          # for calling the hosted Qwen endpoint
