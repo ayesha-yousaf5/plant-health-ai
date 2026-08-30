@@ -1,66 +1,127 @@
 """
-Disease classification model interface.
+Real disease classification model using trained ResNet50.
 
-===========================================================================
- INTEGRATION POINT #1 — REAL DISEASE MODEL GOES HERE
-===========================================================================
-Replace the body of `predict(image, crop)` with a call into the trained
-PlantInquiryVQA-based classifier. Keep the function signature and return
-type IDENTICAL so nothing else in the app needs to change:
-
-    def predict(image: PIL.Image.Image, crop: str) -> tuple[str, float]:
-        return disease_label, confidence   # confidence in [0.0, 1.0]
-
-Typical real implementation:
-
-    from torchvision import transforms
-    _model = torch.load("models/weights/disease_classifier.pt")
-    _model.eval()
-
-    def predict(image, crop):
-        tensor = _TRANSFORM(image.convert("RGB")).unsqueeze(0)
-        with torch.no_grad():
-            logits = _model(tensor)
-            probs = torch.softmax(logits, dim=1)[0]
-        idx = int(probs.argmax())
-        return CLASS_NAMES[crop][idx], float(probs[idx])
-===========================================================================
+Loads the best.pt checkpoint from our training pipeline and applies the same
+transforms used during evaluation (AutoCropBorders + ImageNet normalization).
 """
 
-import hashlib
-import random
+import sys
+from pathlib import Path
 
-from data.crops import DISEASE_CLASSES
+import torch
+import torch.nn as nn
+from PIL import Image
+from torchvision import models, transforms
+
+# Model paths - relative to repo root
+PROJECT_ROOT = Path(__file__).parent.parent
+DISEASE_MODEL_PATH = PROJECT_ROOT / "models" / "weights" / "disease_model.pt"
+
+# Add project root to path for augmentation module
+import sys
+sys.path.insert(0, str(PROJECT_ROOT))
+
+from augmentation import AutoCropBorders
+
+# ImageNet normalization
+IMAGENET_MEAN = [0.485, 0.456, 0.406]
+IMAGENET_STD = [0.229, 0.224, 0.225]
+
+# Crop name mapping: UI format → our format
+CROP_NAME_MAP = {
+    "maize": "Corn",
+    "rice": "Rice",
+    "cotton": "Cotton",
+    "apple": "Apple",
+    "potato": "Potato",
+    "tomato": "Tomato",
+    "mango": "Mango",
+    "grape": "Grape",
+    "peas": "Peas",
+    "sunflower": "Sunflower",
+    "pepper": "Pepper Chilli",
+}
+
+# Global model state
+_model = None
+_class_to_idx = None
+_idx_to_class = None
+_transform = None
+_device = None
 
 
-def predict(image, crop: str) -> tuple[str, float]:
-    """Mock disease prediction.
+def _load_model():
+    """Load the trained model checkpoint."""
+    global _model, _class_to_idx, _idx_to_class, _transform, _device
 
-    Deterministic per (image bytes, crop) so re-running "Analyze" on the
-    same image gives a stable demo result, while different images/crops
-    vary — this makes the hackathon demo look intentional rather than
-    random every click.
+    if _model is not None:
+        return
+
+    _device = torch.device("cuda" if torch.cuda.is_available() else "cpu")
+
+    # Load checkpoint (weights_only=False needed for numpy arrays in class_to_idx)
+    checkpoint = torch.load(DISEASE_MODEL_PATH, map_location=_device, weights_only=False)
+    _class_to_idx = checkpoint["class_to_idx"]
+    _idx_to_class = {v: k for k, v in _class_to_idx.items()}
+
+    # Build model architecture (ResNet50)
+    n_classes = len(_class_to_idx)
+    _model = models.resnet50(weights=None)
+    # Replace the classifier head
+    if hasattr(_model, "classifier"):
+        head = _model.classifier
+        if isinstance(head, nn.Linear):
+            _model.classifier = nn.Linear(head.in_features, n_classes)
+        else:
+            head[-1] = nn.Linear(head[-1].in_features, n_classes)
+    elif hasattr(_model, "fc"):
+        _model.fc = nn.Linear(_model.fc.in_features, n_classes)
+
+    # Load trained weights
+    _model.load_state_dict(checkpoint["model_state_dict"])
+    _model.to(_device)
+    _model.eval()
+
+    # Build eval transform (same as training)
+    _transform = transforms.Compose([
+        AutoCropBorders(),
+        transforms.Resize((224, 224)),
+        transforms.ToTensor(),
+        transforms.Normalize(IMAGENET_MEAN, IMAGENET_STD),
+    ])
+
+    print(f"Disease model loaded: {n_classes} classes, device={_device}")
+
+
+def predict(image: Image.Image, crop: str) -> tuple[str, float]:
+    """Predict disease from a leaf image.
+
+    Args:
+        image: PIL Image of the leaf
+        crop: crop id from UI (e.g., "tomato", "maize")
+
+    Returns:
+        (disease_label, confidence) where confidence is in [0, 1]
     """
-    classes = DISEASE_CLASSES.get(crop, ["Unknown"])
-    seed = _seed_from_image(image, crop)
-    rng = random.Random(seed)
+    _load_model()
 
-    disease = rng.choice(classes)
-    # Bias confidence to mostly-confident with an occasional ambiguous case,
-    # so the uncertainty-handling UI path is easy to demo.
-    if rng.random() < 0.18:
-        confidence = round(rng.uniform(0.32, 0.58), 3)
+    # Apply transforms
+    tensor = _transform(image.convert("RGB")).unsqueeze(0).to(_device)
+
+    # Forward pass
+    with torch.no_grad():
+        logits = _model(tensor)
+        probs = torch.softmax(logits, dim=1)[0]
+
+    # Get prediction
+    idx = int(probs.argmax())
+    full_label = _idx_to_class[idx]  # e.g., "Tomato|Early Blight"
+    confidence = float(probs[idx])
+
+    # Extract disease name (after the |)
+    if "|" in full_label:
+        disease = full_label.split("|")[1]
     else:
-        confidence = round(rng.uniform(0.72, 0.98), 3)
+        disease = full_label
 
     return disease, confidence
-
-
-def _seed_from_image(image, crop: str) -> int:
-    try:
-        thumb = image.copy()
-        thumb.thumbnail((16, 16))
-        digest = hashlib.md5(thumb.tobytes() + crop.encode()).hexdigest()
-        return int(digest[:8], 16)
-    except Exception:
-        return random.randint(0, 1_000_000)

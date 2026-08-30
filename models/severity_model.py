@@ -1,55 +1,118 @@
 """
-Severity assessment model interface.
+Real severity classification model using trained EfficientNet-B0.
 
-===========================================================================
- INTEGRATION POINT #2 — REAL SEVERITY MODEL GOES HERE
-===========================================================================
-Replace the body of `predict(image, disease)` with a call into the trained
-severity-regression/classification model. Keep the signature and return
-type IDENTICAL:
-
-    def predict(image: PIL.Image.Image, disease: str) -> tuple[str, float]:
-        return severity_label, confidence   # severity in {"Mild","Moderate","Severe"}
-
-If the real model outputs a continuous infected-area percentage, bucket it
-into the three labels HERE (server-side) so the UI never receives or shows
-a raw percentage — that's a product requirement, not just a UI choice:
-
-    def _bucket(pct: float) -> str:
-        if pct < 15: return "Mild"
-        if pct < 45: return "Moderate"
-        return "Severe"
-
-    def predict(image, disease):
-        pct, confidence = _severity_regressor(image)
-        return _bucket(pct), confidence
-===========================================================================
+Loads the best.pt checkpoint and applies the same transforms used during
+evaluation.
 """
 
-import hashlib
-import random
+import sys
+from pathlib import Path
 
-from data.crops import SEVERITY_LEVELS
+import torch
+import torch.nn as nn
+from PIL import Image
+from torchvision import models, transforms
+
+# Model paths - relative to repo root
+PROJECT_ROOT = Path(__file__).parent.parent
+SEVERITY_MODEL_PATH = PROJECT_ROOT / "models" / "weights" / "severity_model.pt"
+
+# Add project root to path for augmentation module
+import sys
+sys.path.insert(0, str(PROJECT_ROOT))
+
+from augmentation import AutoCropBorders
+
+# ImageNet normalization
+IMAGENET_MEAN = [0.485, 0.456, 0.406]
+IMAGENET_STD = [0.229, 0.224, 0.225]
+
+# Severity label mapping: our format → UI format
+SEVERITY_LABEL_MAP = {
+    "MILD": "Mild",
+    "MODERATE": "Moderate",
+    "SEVERE": "Severe",
+}
+
+# Global model state
+_model = None
+_class_to_idx = None
+_idx_to_class = None
+_transform = None
+_device = None
 
 
-def predict(image, disease: str) -> tuple[str, float]:
-    """Mock severity prediction, deterministic per (image, disease)."""
+def _load_model():
+    """Load the trained severity model checkpoint."""
+    global _model, _class_to_idx, _idx_to_class, _transform, _device
+
+    if _model is not None:
+        return
+
+    _device = torch.device("cuda" if torch.cuda.is_available() else "cpu")
+
+    # Load checkpoint (weights_only=False needed for numpy arrays in class_to_idx)
+    checkpoint = torch.load(SEVERITY_MODEL_PATH, map_location=_device, weights_only=False)
+    _class_to_idx = checkpoint["class_to_idx"]
+    _idx_to_class = {v: k for k, v in _class_to_idx.items()}
+
+    # Build model architecture (EfficientNet-B0)
+    n_classes = len(_class_to_idx)
+    _model = models.efficientnet_b0(weights=None)
+    # Replace the classifier head
+    if hasattr(_model, "classifier"):
+        head = _model.classifier
+        if isinstance(head, nn.Linear):
+            _model.classifier = nn.Linear(head.in_features, n_classes)
+        else:
+            head[-1] = nn.Linear(head[-1].in_features, n_classes)
+
+    # Load trained weights
+    _model.load_state_dict(checkpoint["model_state_dict"])
+    _model.to(_device)
+    _model.eval()
+
+    # Build eval transform
+    _transform = transforms.Compose([
+        AutoCropBorders(),
+        transforms.Resize((224, 224)),
+        transforms.ToTensor(),
+        transforms.Normalize(IMAGENET_MEAN, IMAGENET_STD),
+    ])
+
+    print(f"Severity model loaded: {n_classes} classes, device={_device}")
+
+
+def predict(image: Image.Image, disease: str) -> tuple[str, float]:
+    """Predict severity from a leaf image.
+
+    Args:
+        image: PIL Image of the leaf
+        disease: disease label (not used by severity model, but kept for API compatibility)
+
+    Returns:
+        (severity_label, confidence) where severity is "Mild", "Moderate", or "Severe"
+    """
+    _load_model()
+
+    # Healthy leaves get Mild severity
     if disease.lower() == "healthy":
-        return "Mild", round(random.Random(1).uniform(0.9, 0.99), 3)
+        return "Mild", 0.95
 
-    seed = _seed_from_image(image, disease)
-    rng = random.Random(seed)
+    # Apply transforms
+    tensor = _transform(image.convert("RGB")).unsqueeze(0).to(_device)
 
-    severity = rng.choices(SEVERITY_LEVELS, weights=[0.35, 0.4, 0.25])[0]
-    confidence = round(rng.uniform(0.68, 0.96), 3)
+    # Forward pass
+    with torch.no_grad():
+        logits = _model(tensor)
+        probs = torch.softmax(logits, dim=1)[0]
+
+    # Get prediction
+    idx = int(probs.argmax())
+    severity_raw = _idx_to_class[idx]  # e.g., "MILD", "MODERATE", "SEVERE"
+    confidence = float(probs[idx])
+
+    # Map to UI format
+    severity = SEVERITY_LABEL_MAP.get(severity_raw, severity_raw)
+
     return severity, confidence
-
-
-def _seed_from_image(image, disease: str) -> int:
-    try:
-        thumb = image.copy()
-        thumb.thumbnail((16, 16))
-        digest = hashlib.md5(thumb.tobytes() + disease.encode() + b"sev").hexdigest()
-        return int(digest[:8], 16)
-    except Exception:
-        return random.randint(0, 1_000_000)

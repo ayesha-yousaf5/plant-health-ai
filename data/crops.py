@@ -11,7 +11,7 @@ never has to change.
 """
 
 # Crops selectable in the Diagnosis flow.
-# `emoji` and `blurb` are purely presentational (used on the crop selector cards).
+# Updated to match our trained model's crop coverage.
 SUPPORTED_CROPS = [
     {"id": "maize", "label": "Corn / Maize", "emoji": "🌽",
      "blurb": "Rust, leaf spot, blight"},
@@ -27,22 +27,20 @@ SUPPORTED_CROPS = [
      "blurb": "Blight, mosaic virus, leaf mold"},
     {"id": "mango", "label": "Mango", "emoji": "🥭",
      "blurb": "Anthracnose, powdery mildew"},
-    {"id": "cucumber", "label": "Cucumber", "emoji": "🥒",
-     "blurb": "Downy & powdery mildew"},
-    {"id": "eggplant", "label": "Eggplant / Brinjal", "emoji": "🍆",
-     "blurb": "Bacterial wilt, leaf spot"},
     {"id": "grape", "label": "Grape", "emoji": "🍇",
      "blurb": "Black rot, esca, leaf blight"},
     {"id": "peas", "label": "Peas", "emoji": "🫛",
      "blurb": "Powdery mildew, rust"},
     {"id": "sunflower", "label": "Sunflower", "emoji": "🌻",
      "blurb": "Downy mildew, rust, leaf spot"},
+    {"id": "pepper", "label": "Pepper / Chilli", "emoji": "🌶️",
+     "blurb": "Thrips, blight, mites"},
 ]
 
 CROP_IDS = [c["id"] for c in SUPPORTED_CROPS]
 
-# Placeholder disease vocabulary per crop, used only by the mock predictor.
-# Replace with the trained model's real class list at integration time.
+# Disease vocabulary per crop — placeholder for UI reference.
+# The real model handles class names internally via class_to_idx.
 DISEASE_CLASSES = {
     "maize": ["Common Rust", "Gray Leaf Spot", "Northern Leaf Blight", "Healthy"],
     "rice": ["Bacterial Leaf Blight", "Rice Blast", "Brown Spot", "Healthy"],
@@ -51,11 +49,10 @@ DISEASE_CLASSES = {
     "potato": ["Early Blight", "Late Blight", "Healthy"],
     "tomato": ["Early Blight", "Late Blight", "Leaf Mold", "Mosaic Virus", "Septoria Leaf Spot", "Healthy"],
     "mango": ["Anthracnose", "Powdery Mildew", "Bacterial Canker", "Healthy"],
-    "cucumber": ["Downy Mildew", "Powdery Mildew", "Angular Leaf Spot", "Healthy"],
-    "eggplant": ["Bacterial Wilt", "Leaf Spot", "Little Leaf Disease", "Healthy"],
     "grape": ["Black Rot", "Esca (Black Measles)", "Leaf Blight", "Healthy"],
     "peas": ["Powdery Mildew", "Rust", "Bacterial Blight", "Healthy"],
     "sunflower": ["Downy Mildew", "Rust", "Leaf Spot", "Healthy"],
+    "pepper": ["Thrips", "Blight", "Mites", "Spot", "Healthy"],
 }
 
 SEVERITY_LEVELS = ["Mild", "Moderate", "Severe"]
