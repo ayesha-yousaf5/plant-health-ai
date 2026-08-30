@@ -11,7 +11,7 @@ from app.styles.theme import inject_theme
 from app.components.nav import render_sidebar
 from app.components.state import init_state
 from app.components.ui import eyebrow, divider, severity_badge
-from chatbot.qwen_assistant import ask
+from chatbot.plantcare_ai import ask
 from data.crops import SUPPORTED_CROPS
 
 st.set_page_config(page_title="AI Assistant · Plant Health AI", page_icon="🤖", layout="wide")
