@@ -1,12 +1,13 @@
 """
 Real severity classification model using trained EfficientNet-B0.
 
-Loads the best.pt checkpoint and applies the same transforms used during
-evaluation.
+Downloads the model from cloud storage on first run, then loads the checkpoint
+and applies the same transforms used during evaluation.
 """
 
 import sys
 from pathlib import Path
+import urllib.request
 
 import torch
 import torch.nn as nn
@@ -17,8 +18,10 @@ from torchvision import models, transforms
 PROJECT_ROOT = Path(__file__).parent.parent
 SEVERITY_MODEL_PATH = PROJECT_ROOT / "models" / "weights" / "severity_model.pt"
 
+# Google Drive direct download link
+SEVERITY_MODEL_URL = "https://drive.google.com/uc?export=download&id=14FShPAXWs7H7IzTBkliX6HrZhDhPsf7o"
+
 # Add project root to path for augmentation module
-import sys
 sys.path.insert(0, str(PROJECT_ROOT))
 
 from augmentation import AutoCropBorders
@@ -42,12 +45,24 @@ _transform = None
 _device = None
 
 
+def _download_model_if_needed():
+    """Download model from Google Drive if not present locally."""
+    if not SEVERITY_MODEL_PATH.exists():
+        print(f"Downloading severity model from cloud storage...")
+        SEVERITY_MODEL_PATH.parent.mkdir(parents=True, exist_ok=True)
+        urllib.request.urlretrieve(SEVERITY_MODEL_URL, SEVERITY_MODEL_PATH)
+        print(f"Model downloaded to {SEVERITY_MODEL_PATH}")
+
+
 def _load_model():
     """Load the trained severity model checkpoint."""
     global _model, _class_to_idx, _idx_to_class, _transform, _device
 
     if _model is not None:
         return
+
+    # Download model if needed
+    _download_model_if_needed()
 
     _device = torch.device("cuda" if torch.cuda.is_available() else "cpu")
 

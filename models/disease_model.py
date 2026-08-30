@@ -1,12 +1,13 @@
 """
 Real disease classification model using trained ResNet50.
 
-Loads the best.pt checkpoint from our training pipeline and applies the same
-transforms used during evaluation (AutoCropBorders + ImageNet normalization).
+Downloads the model from cloud storage on first run, then loads the checkpoint
+and applies the same transforms used during evaluation (AutoCropBorders + ImageNet normalization).
 """
 
 import sys
 from pathlib import Path
+import urllib.request
 
 import torch
 import torch.nn as nn
@@ -17,8 +18,10 @@ from torchvision import models, transforms
 PROJECT_ROOT = Path(__file__).parent.parent
 DISEASE_MODEL_PATH = PROJECT_ROOT / "models" / "weights" / "disease_model.pt"
 
+# Google Drive direct download link
+DISEASE_MODEL_URL = "https://drive.google.com/uc?export=download&id=1OGIp67N5JGP890su0KYXjSKTV4kZ8MYI"
+
 # Add project root to path for augmentation module
-import sys
 sys.path.insert(0, str(PROJECT_ROOT))
 
 from augmentation import AutoCropBorders
@@ -50,12 +53,24 @@ _transform = None
 _device = None
 
 
+def _download_model_if_needed():
+    """Download model from Google Drive if not present locally."""
+    if not DISEASE_MODEL_PATH.exists():
+        print(f"Downloading disease model from cloud storage...")
+        DISEASE_MODEL_PATH.parent.mkdir(parents=True, exist_ok=True)
+        urllib.request.urlretrieve(DISEASE_MODEL_URL, DISEASE_MODEL_PATH)
+        print(f"Model downloaded to {DISEASE_MODEL_PATH}")
+
+
 def _load_model():
     """Load the trained model checkpoint."""
     global _model, _class_to_idx, _idx_to_class, _transform, _device
 
     if _model is not None:
         return
+
+    # Download model if needed
+    _download_model_if_needed()
 
     _device = torch.device("cuda" if torch.cuda.is_available() else "cpu")
 
