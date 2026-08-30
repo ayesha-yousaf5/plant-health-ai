@@ -7,19 +7,19 @@ and applies the same transforms used during evaluation.
 
 import sys
 from pathlib import Path
-import urllib.request
 
 import torch
 import torch.nn as nn
 from PIL import Image
 from torchvision import models, transforms
+import gdown
 
 # Model paths - relative to repo root
 PROJECT_ROOT = Path(__file__).parent.parent
 SEVERITY_MODEL_PATH = PROJECT_ROOT / "models" / "weights" / "severity_model.pt"
 
-# Google Drive direct download link
-SEVERITY_MODEL_URL = "https://drive.google.com/uc?export=download&id=14FShPAXWs7H7IzTBkliX6HrZhDhPsf7o"
+# Google Drive file ID
+SEVERITY_MODEL_ID = "14FShPAXWs7H7IzTBkliX6HrZhDhPsf7o"
 
 # Add project root to path for augmentation module
 sys.path.insert(0, str(PROJECT_ROOT))
@@ -50,7 +50,8 @@ def _download_model_if_needed():
     if not SEVERITY_MODEL_PATH.exists():
         print(f"Downloading severity model from cloud storage...")
         SEVERITY_MODEL_PATH.parent.mkdir(parents=True, exist_ok=True)
-        urllib.request.urlretrieve(SEVERITY_MODEL_URL, SEVERITY_MODEL_PATH)
+        url = f"https://drive.google.com/uc?id={SEVERITY_MODEL_ID}"
+        gdown.download(url, str(SEVERITY_MODEL_PATH), quiet=False)
         print(f"Model downloaded to {SEVERITY_MODEL_PATH}")
 
 

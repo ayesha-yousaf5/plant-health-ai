@@ -7,19 +7,19 @@ and applies the same transforms used during evaluation (AutoCropBorders + ImageN
 
 import sys
 from pathlib import Path
-import urllib.request
 
 import torch
 import torch.nn as nn
 from PIL import Image
 from torchvision import models, transforms
+import gdown
 
 # Model paths - relative to repo root
 PROJECT_ROOT = Path(__file__).parent.parent
 DISEASE_MODEL_PATH = PROJECT_ROOT / "models" / "weights" / "disease_model.pt"
 
-# Google Drive direct download link
-DISEASE_MODEL_URL = "https://drive.google.com/uc?export=download&id=1OGIp67N5JGP890su0KYXjSKTV4kZ8MYI"
+# Google Drive file ID
+DISEASE_MODEL_ID = "1OGIp67N5JGP890su0KYXjSKTV4kZ8MYI"
 
 # Add project root to path for augmentation module
 sys.path.insert(0, str(PROJECT_ROOT))
@@ -58,7 +58,8 @@ def _download_model_if_needed():
     if not DISEASE_MODEL_PATH.exists():
         print(f"Downloading disease model from cloud storage...")
         DISEASE_MODEL_PATH.parent.mkdir(parents=True, exist_ok=True)
-        urllib.request.urlretrieve(DISEASE_MODEL_URL, DISEASE_MODEL_PATH)
+        url = f"https://drive.google.com/uc?id={DISEASE_MODEL_ID}"
+        gdown.download(url, str(DISEASE_MODEL_PATH), quiet=False)
         print(f"Model downloaded to {DISEASE_MODEL_PATH}")
 
 
