@@ -9,7 +9,8 @@ import os
 from pathlib import Path
 from chatbot.disease_knowledge import (
     get_disease_info, get_treatment_info, get_crop_diseases,
-    CROP_SEASONAL_GUIDE, HOMEMADE_REMEDIES, FERTILIZER_GUIDE, PESTICIDE_GUIDE
+    CROP_SEASONAL_GUIDE, HOMEMADE_REMEDIES, FERTILIZER_GUIDE, PESTICIDE_GUIDE,
+    match_urdu_to_knowledge, PEST_KNOWLEDGE
 )
 
 # =========================================================
@@ -34,6 +35,33 @@ FOLLOW_UP_WORDS = [
 ]
 
 URDU_RANGE = "؀-ۿ"
+
+URDU_CROP_NAMES = {
+    "ٹماٹر": "tomato",
+    "آلو": "potato",
+    "چاول": "rice",
+    "پدی": "rice",
+    "مکہ": "maize",
+    "بھٹا": "maize",
+    "کپاس": "cotton",
+    "روئی": "cotton",
+    "گندم": "wheat",
+    "سیب": "apple",
+    "آم": "mango",
+    "انگور": "grape",
+    "مٹر": "peas",
+    "سورج مکھی": "sunflower",
+    "مرچ": "pepper",
+    "شملہ مرچ": "pepper",
+}
+
+
+def _detect_urdu_crop(text):
+    """Detect crop name from Urdu text. Returns crop_id or None."""
+    for urdu_name, crop_id in URDU_CROP_NAMES.items():
+        if urdu_name in text:
+            return crop_id
+    return None
 
 def _is_urdu(text: str) -> bool:
     """Return True if the text contains Urdu/Arabic script characters."""
@@ -103,7 +131,8 @@ LANGUAGE RULE (CRITICAL):
 - If the farmer writes in Urdu, you MUST respond entirely in Urdu script. Do not mix English words.
 - If the farmer writes in English, respond in English.
 - Urdu responses must use proper Urdu script (not Roman Urdu). Use everyday Urdu that a farmer would understand.
-- Disease names and product names can stay in their original form if there is no common Urdu equivalent, but all explanations must be in Urdu.
+- When responding in Urdu about a disease or pest, ALWAYS give the name in BOTH Urdu and English. For example: "پتیوں کا پھپھوندی (Leaf Mold)" or "سفید مکھی (Whitefly)". This helps the farmer learn the technical name too.
+- Product names (brand names, chemical names) can stay in English — farmers need to recognize them at the shop.
 
 Core behavior:
 - Give SPECIFIC advice about the exact disease the farmer is asking about. Never give generic filler.
@@ -115,6 +144,7 @@ Core behavior:
 - When RECOMMENDED PRODUCTS are listed, mention the brand name, dose, and pre-harvest interval (PHI).
 - Use short bullet points for readability.
 - Keep answers concise but complete: 40-80 words for simple questions, up to 120 words for treatment or prevention questions.
+- If the farmer mentions a pest (like whitefly, aphids, jassids), give pest-specific advice — don't confuse it with a disease.
 
 Answer structure:
 - Start with a one-line direct answer to the question.
@@ -128,6 +158,7 @@ What to avoid:
 - Do not say "consult an expert" as the only advice. Give actionable guidance first, then mention consulting if needed.
 - Do not invent disease names or treatments not in the provided knowledge.
 - Do not answer non-agriculture questions. Politely redirect in the farmer's language.
+- Do NOT say "I don't have information" when the knowledge base clearly has relevant data. Use what is provided.
 
 Conversation memory:
 - Remember the disease being discussed. If the user says "it", "this disease", or "its treatment", refer to the current disease.
@@ -252,6 +283,32 @@ def _build_knowledge_context(disease_info, user_question):
     return "\n".join(parts)
 
 
+def _format_pest_answer(pest_info, user_question):
+    """Format a direct, comprehensive answer from pest knowledge."""
+    lines = []
+    lines.append(f"**{pest_info['pest']}** ({pest_info['urdu_name']})")
+    lines.append(f"*Damage: {pest_info['damage']}*\n")
+
+    lines.append("**How to identify:**")
+    for item in pest_info['identification']:
+        lines.append(f"- {item}")
+
+    lines.append("\n**Organic treatments:**")
+    for t in pest_info['treatment_organic']:
+        lines.append(f"- {t}")
+
+    lines.append("\n**Chemical treatments:**")
+    for t in pest_info['treatment_chemical']:
+        lines.append(f"- {t}")
+
+    lines.append("\n**Prevention:**")
+    for p in pest_info['prevention']:
+        lines.append(f"- {p}")
+
+    lines.append("\n*Confirm product choice and dosage with your local agricultural extension officer.*")
+    return "\n".join(lines)
+
+
 def _format_knowledge_base_answer(disease_info, user_question):
     """Format a direct, comprehensive answer from the knowledge base."""
     question_lower = user_question.lower()
@@ -320,7 +377,44 @@ def _format_knowledge_base_answer(disease_info, user_question):
 # =========================================================
 # GENERATE ANSWER USING GROQ
 # =========================================================
-def generate_answer(user_question, retrieved_results):
+def _build_pest_context(pest_info):
+    """Build knowledge context string for a pest."""
+    parts = []
+    parts.append(f"=== PEST KNOWLEDGE: {pest_info['pest'].upper()} ===")
+    parts.append(f"Urdu name: {pest_info['urdu_name']}")
+    parts.append(f"Crops affected: {', '.join(pest_info['crops_affected'])}")
+    parts.append(f"Damage: {pest_info['damage']}")
+
+    parts.append(f"\nHow to identify:")
+    for item in pest_info['identification']:
+        parts.append(f"- {item}")
+
+    parts.append(f"\nOrganic treatments:")
+    for t in pest_info['treatment_organic']:
+        parts.append(f"- {t}")
+
+    parts.append(f"\nChemical treatments:")
+    for t in pest_info['treatment_chemical']:
+        parts.append(f"- {t}")
+
+    parts.append(f"\nPrevention:")
+    for p in pest_info['prevention']:
+        parts.append(f"- {p}")
+
+    # Add relevant insecticide products
+    parts.append(f"\n=== RECOMMENDED PRODUCTS ===")
+    for category, products in PESTICIDE_GUIDE.get("insecticides", {}).items():
+        for product in products:
+            targets = [t.lower() for t in product.get("target", [])]
+            pest_lower = pest_info['pest'].lower()
+            if any(pest_lower in t or t in pest_lower for t in targets):
+                parts.append(f"- {product['name']} ({product['brand']}): {product['dose']}, PHI: {product['phi']}")
+
+    parts.append(f"=== END PEST KNOWLEDGE ===")
+    return "\n".join(parts)
+
+
+def generate_answer(user_question, retrieved_results, urdu_match=None):
     """Generate answer using Groq API with knowledge base."""
 
     urdu_mode = _is_urdu(user_question)
@@ -339,7 +433,13 @@ def generate_answer(user_question, retrieved_results):
     # Always try to load disease knowledge base
     knowledge_context = ""
     disease_info = None
-    if conversation_context["crop"] and conversation_context["disease"]:
+    pest_info = None
+
+    # If we have a pest match from Urdu, use pest knowledge directly
+    if urdu_match and urdu_match["type"] == "pest":
+        pest_info = urdu_match["pest_info"]
+        knowledge_context = _build_pest_context(pest_info)
+    elif conversation_context["crop"] and conversation_context["disease"]:
         disease_info = get_disease_info(
             conversation_context["crop"],
             conversation_context["disease"]
@@ -354,6 +454,11 @@ def generate_answer(user_question, retrieved_results):
                 kb_answer = _format_knowledge_base_answer(disease_info, user_question)
                 return _translate_to_urdu(kb_answer)
             return _format_knowledge_base_answer(disease_info, user_question)
+        if pest_info:
+            if urdu_mode:
+                kb_answer = _format_pest_answer(pest_info, user_question)
+                return _translate_to_urdu(kb_answer)
+            return _format_pest_answer(pest_info, user_question)
         if urdu_mode:
             return _translate_to_urdu(
                 "I don't have enough information to answer this accurately. "
@@ -466,10 +571,27 @@ def ask(message: str, context: dict = None, history: list = None) -> str:
         if context.get("severity"):
             conversation_context["severity"] = context["severity"]
 
-    # If the farmer speaks Urdu, translate to English for dataset search
-    # so the TF-IDF matching works (dataset is in English).
-    search_message = message
+    # If the farmer speaks Urdu, first try direct Urdu name matching
+    # (e.g. "سفید مکھی" → whitefly, "جھلس" → blight)
+    urdu_match = None
     if _is_urdu(message):
+        urdu_match = match_urdu_to_knowledge(message)
+        urdu_crop = _detect_urdu_crop(message)
+        if urdu_match:
+            if urdu_match["type"] == "disease":
+                conversation_context["crop"] = urdu_crop or urdu_match["crop"]
+                conversation_context["disease"] = urdu_match["disease"]
+            elif urdu_match["type"] == "pest":
+                pest_info = urdu_match["pest_info"]
+                if urdu_crop and urdu_crop in pest_info.get("crops_affected", []):
+                    conversation_context["crop"] = urdu_crop
+                elif not conversation_context["crop"]:
+                    conversation_context["crop"] = pest_info.get("crops_affected", [None])[0]
+                conversation_context["disease"] = pest_info["pest"]
+
+    # If no Urdu match, translate to English for TF-IDF search
+    search_message = message
+    if _is_urdu(message) and not urdu_match:
         try:
             search_message = _translate_to_english(message)
         except Exception:
@@ -484,7 +606,7 @@ def ask(message: str, context: dict = None, history: list = None) -> str:
         if best.get("crop") and not conversation_context["crop"]:
             conversation_context["crop"] = str(best["crop"])
 
-    return generate_answer(message, results)
+    return generate_answer(message, results, urdu_match=urdu_match)
 
 def reset_context():
     """Reset conversation context."""

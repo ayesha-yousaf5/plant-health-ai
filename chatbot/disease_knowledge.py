@@ -1745,6 +1745,312 @@ PESTICIDE_GUIDE = {
     }
 }
 
+# =========================================================
+# URDU-TO-ENGLISH DISEASE / PEST NAME MAP
+# =========================================================
+# Maps Urdu terms (as farmers say them) to (crop, english_disease_name) pairs.
+# Used so that when a farmer asks in Urdu using local names, the chatbot
+# can still find the right disease in the knowledge base.
+URDU_DISEASE_MAP = {
+    # -- Blight / جھلس --
+    "جھلس": ("potato", "Late Blight"),
+    "جھلس کی بیماری": ("potato", "Late Blight"),
+    "آلو کا جھلس": ("potato", "Late Blight"),
+    "ٹماٹر کا جھلس": ("tomato", "Late Blight"),
+    "لیٹ بلائٹ": ("potato", "Late Blight"),
+    "ایرلی بلائٹ": ("tomato", "Early Blight"),
+    "ابتدائی جھلس": ("tomato", "Early Blight"),
+
+    # -- Leaf Curl / پتا لپیٹا --
+    "پتا لپیٹا": ("cotton", "Leaf Curl Virus"),
+    "پتوں کا لپیٹا": ("cotton", "Leaf Curl Virus"),
+    "پتے لپیٹنا": ("cotton", "Leaf Curl Virus"),
+    "لیف کرل": ("cotton", "Leaf Curl Virus"),
+
+    # -- Whitefly / سفید مکھی --
+    "سفید مکھی": ("cotton", "Leaf Curl Virus"),
+    "سفید مکھیاں": ("cotton", "Leaf Curl Virus"),
+    "وائٹ فلائی": ("cotton", "Leaf Curl Virus"),
+
+    # -- Leaf Mold / پتے پر فنگس --
+    "پتے پر فنگس": ("tomato", "Leaf Mold"),
+    "پتوں پر پھپھوندی": ("tomato", "Leaf Mold"),
+    "لیف مولڈ": ("tomato", "Leaf Mold"),
+
+    # -- Powdery Mildew / سفید پاؤڈر --
+    "سفید پاؤڈر": ("mango", "Powdery Mildew"),
+    "پاؤڈری میلڈیو": ("mango", "Powdery Mildew"),
+    "سفید چپٹ": ("mango", "Powdery Mildew"),
+    "آڑ کی بیماری": ("peas", "Powdery Mildew"),
+
+    # -- Mosaic Virus / موزیک --
+    "موزیک": ("tomato", "Mosaic Virus"),
+    "موزیک وائرس": ("tomato", "Mosaic Virus"),
+    "پتوں کا موزیک": ("tomato", "Mosaic Virus"),
+
+    # -- Rust / زنگ --
+    "زنگ": ("peas", "Rust"),
+    "زنگ کی بیماری": ("peas", "Rust"),
+    "رسٹ": ("maize", "Common Rust"),
+
+    # -- Septoria Leaf Spot / سیاہ دھبے --
+    "سیاہ دھبے": ("tomato", "Septoria Leaf Spot"),
+    "پتوں پر سیاہ دھبے": ("tomato", "Septoria Leaf Spot"),
+    "سیپٹوریا": ("tomato", "Septoria Leaf Spot"),
+
+    # -- Bacterial Blight / بیکٹیریل بلائٹ --
+    "بیکٹیریل بلائٹ": ("cotton", "Bacterial Blight"),
+    "بیکٹیریا کا جھلس": ("cotton", "Bacterial Blight"),
+
+    # -- Boll Rot / بال کی سڑن --
+    "بال کی سڑن": ("cotton", "Boll Rot"),
+    "بول روٹ": ("cotton", "Boll Rot"),
+    "روئی کی بال سڑنا": ("cotton", "Boll Rot"),
+
+    # -- Apple Scab / سیب پر داغ --
+    "سیب پر داغ": ("apple", "Apple Scab"),
+    "ایپل اسکب": ("apple", "Apple Scab"),
+
+    # -- Black Rot / کالا گل --
+    "کالا گل": ("apple", "Black Rot"),
+    "بلیک روٹ": ("grape", "Black Rot"),
+
+    # -- Anthracnose / اینتھریکنوز --
+    "اینتھریکنوز": ("mango", "Anthracnose"),
+    "پھل کا گلنا": ("mango", "Anthracnose"),
+
+    # -- Bacterial Canker / بیکٹیریل کینکر --
+    "بیکٹیریل کینکر": ("mango", "Bacterial Canker"),
+    "ٹھوٹا گل": ("mango", "Bacterial Canker"),
+
+    # -- Downy Mildew --
+    "ڈاؤنی میلڈیو": ("sunflower", "Downy Mildew"),
+
+    # -- Rice Blast / رائس بلاسٹ --
+    "رائس بلاسٹ": ("rice", "Rice Blast"),
+    "چاول کا جھلس": ("rice", "Rice Blast"),
+
+    # -- Brown Spot --
+    "براؤن سپاٹ": ("rice", "Brown Spot"),
+    "بھورے دھبے": ("rice", "Brown Spot"),
+
+    # -- General symptom-to-disease mappings --
+    "سفید دھبے": ("tomato", "Leaf Mold"),
+    "پیلے دھبے": ("potato", "Early Blight"),
+    "کالے دھبے": ("potato", "Late Blight"),
+    "پتے زرد ہونا": ("tomato", "Mosaic Virus"),
+    "پتے موڑنا": ("cotton", "Leaf Curl Virus"),
+    "تنا سڑنا": ("cotton", "Boll Rot"),
+    "پھل سڑنا": ("apple", "Black Rot"),
+}
+
+# =========================================================
+# COMMON PEST KNOWLEDGE (not diseases, but farmers ask about them)
+# =========================================================
+PEST_KNOWLEDGE = {
+    "whitefly": {
+        "pest": "Whitefly",
+        "urdu_name": "سفید مکھی",
+        "crops_affected": ["tomato", "cotton", "pepper"],
+        "damage": "Sucks sap from leaves, causes yellowing, curling, and wilting. Spreads Leaf Curl Virus.",
+        "identification": [
+            "Tiny white insects on underside of leaves",
+            "Leaves turn yellow and curl upward",
+            "Sticky honeydew on leaves, black sooty mold grows on it",
+            "Whiteflies fly up when plant is disturbed"
+        ],
+        "treatment_organic": [
+            "Yellow sticky traps — 10-12 per acre",
+            "Neem oil 5 ml/L spray on leaf undersides",
+            "Release Encarsia formosa (parasitic wasp) — 2000 per acre",
+            "Spray water strongly to dislodge whiteflies"
+        ],
+        "treatment_chemical": [
+            "Imidacloprid (Confidor) 0.3 ml/L — spray leaf undersides",
+            "Thiamethoxam (Actara) 0.5 g/L",
+            "Acetamiprid (Starke) 0.5 g/L",
+            "Rotate insecticides every 7 days to prevent resistance"
+        ],
+        "prevention": [
+            "Remove weeds around the field (whitefly breeding ground)",
+            "Use reflective mulch to repel whiteflies",
+            "Avoid excess nitrogen fertilizer (attracts whiteflies)",
+            "Check leaf undersides weekly"
+        ]
+    },
+    "aphids": {
+        "pest": "Aphids",
+        "urdu_name": "شجرہ کیڑا / افیڈ",
+        "crops_affected": ["tomato", "pepper", "peas", "cotton"],
+        "damage": "Sucks sap, causes leaf curling, stunted growth, and spreads viruses.",
+        "identification": [
+            "Small green, black, or brown insects on new growth",
+            "Leaves curl and distort",
+            "Sticky honeydew on leaves",
+            "Ants present (they farm aphids)"
+        ],
+        "treatment_organic": [
+            "Neem oil 5 ml/L spray",
+            "Garlic-chili spray (blend 10 garlic + 5 chili in 1L water, strain, dilute 1:10)",
+            "Release ladybugs — natural predators",
+            "Strong water jet to knock off aphids"
+        ],
+        "treatment_chemical": [
+            "Imidacloprid (Confidor) 0.3 ml/L",
+            "Dimethoate 1.5 ml/L",
+            "Lambda-cyhalothrin (Karate) 1 ml/L"
+        ],
+        "prevention": [
+            "Control ants (they protect aphids)",
+            "Remove infested shoot tips",
+            "Avoid excess nitrogen",
+            "Plant trap crops like mustard around the field"
+        ]
+    },
+    "jassids": {
+        "pest": "Jassids (Leafhoppers)",
+        "urdu_name": "جاسیڈ / پتہ چوسنے والا",
+        "crops_affected": ["cotton"],
+        "damage": "Sucks sap from cotton leaves, causes hopperburn — leaf edges turn yellow then brown and curl.",
+        "identification": [
+            "Yellowing at leaf edges (hopperburn)",
+            "Leaf curls downward",
+            "Tiny wedge-shaped insects jump when disturbed",
+            "Most damage in hot, dry weather"
+        ],
+        "treatment_organic": [
+            "Neem oil 5 ml/L",
+            "Yellow sticky traps",
+            "Spray kaolin clay (3%) as barrier"
+        ],
+        "treatment_chemical": [
+            "Imidacloprid (Confidor) 0.3 ml/L",
+            "Thiamethoxam (Actara) 0.5 g/L",
+            "Profenofos 2 ml/L"
+        ],
+        "prevention": [
+            "Early planting to avoid peak jassid population",
+            "Remove alternate weed hosts",
+            "Use resistant varieties"
+        ]
+    },
+    "bollworm": {
+        "pest": "Cotton Bollworm",
+        "urdu_name": "سندرا / بال کا کیڑا",
+        "crops_affected": ["cotton"],
+        "damage": "Larvae bore into cotton bolls, destroying lint and seeds. Most destructive cotton pest in Pakistan.",
+        "identification": [
+            "Small holes in bolls with frass (excrement) near entry point",
+            "Damaged squares (flower buds) fail to open",
+            "Young larvae on tender shoot tips",
+            "Moths in field during evening"
+        ],
+        "treatment_organic": [
+            "Pheromone traps — 5 per acre for monitoring",
+            "Trichogramma wasp release — 1 lakh/acre at egg stage",
+            "Neem oil 5 ml/L on young larvae",
+            "Hand-pick damaged bolls"
+        ],
+        "treatment_chemical": [
+            "Chlorantraniliprole (Coragen) 0.3 ml/L",
+            "Emamectin benzoate (Proclaim) 0.5 g/L",
+            "Lambda-cyhalothrin (Karate) 1 ml/L",
+            "Spray when larvae are young — they are hardest to kill when large"
+        ],
+        "prevention": [
+            "Destroy crop residues after harvest",
+            "Plant Bt cotton varieties",
+            "Maintain refuge crop (non-Bt) to delay resistance",
+            "Winter plowing to expose pupae"
+        ]
+    },
+    "thrips": {
+        "pest": "Thrips",
+        "urdu_name": "تھرپس / چوسنے والا کیڑا",
+        "crops_affected": ["pepper", "cotton", "tomato"],
+        "damage": "Scrape and suck plant tissue, cause silvering of leaves, deform flowers and fruit.",
+        "identification": [
+            "Silver or bronze patches on leaves",
+            "Deformed flowers and young fruit",
+            "Tiny dark slender insects (hard to see without magnification)",
+            "Black fecal spots on leaves"
+        ],
+        "treatment_organic": [
+            "Blue sticky traps — 15 per acre",
+            "Neem oil 5 ml/L",
+            "Spinosad-based biopesticide"
+        ],
+        "treatment_chemical": [
+            "Thiamethoxam (Actara) 0.5 g/L",
+            "Spinetoram 0.5 ml/L",
+            "Fipronil 1 ml/L"
+        ],
+        "prevention": [
+            "Remove weeds and plant debris",
+            "Avoid planting near infested fields",
+            "Use reflective mulch"
+        ]
+    },
+    "red_mite": {
+        "pest": "Red Spider Mite",
+        "urdu_name": "سرخ مکڑی کا کیڑا",
+        "crops_affected": ["cotton", "tomato", "pepper"],
+        "damage": "Tiny mites suck cell contents, cause stippling and bronzing of leaves. Severe in hot, dry weather.",
+        "identification": [
+            "Fine webbing on leaf undersides",
+            "Tiny yellow/red dots on leaves (stippling)",
+            "Leaves turn bronze then brown",
+            "Worst in hot, dry conditions"
+        ],
+        "treatment_organic": [
+            "Spray water on leaf undersides (mites hate humidity)",
+            "Neem oil 5 ml/L",
+            "Release predatory mites (Phytoseiulus)"
+        ],
+        "treatment_chemical": [
+            "Abamectin (Vertimec) 1 ml/L",
+            "Spiromesifen (Oberon) 1 ml/L",
+            "Propargite 2 ml/L"
+        ],
+        "prevention": [
+            "Maintain humidity around plants",
+            "Avoid dust accumulation on leaves",
+            "Monitor during hot, dry spells"
+        ]
+    }
+}
+
+
+def get_pest_info(pest_name):
+    """Look up pest knowledge by English or Urdu name."""
+    pest_lower = pest_name.lower().strip()
+    if pest_lower in PEST_KNOWLEDGE:
+        return PEST_KNOWLEDGE[pest_lower]
+    for key, info in PEST_KNOWLEDGE.items():
+        if info["urdu_name"] == pest_name or pest_lower in key:
+            return info
+    return None
+
+
+def match_urdu_to_knowledge(urdu_text):
+    """Try to match Urdu text to a known disease or pest.
+
+    Returns (crop, disease_name) from DISEASE_KNOWLEDGE, or
+    pest info dict from PEST_KNOWLEDGE, or None.
+    """
+    for urdu_term, (crop, disease) in URDU_DISEASE_MAP.items():
+        if urdu_term in urdu_text:
+            return {"type": "disease", "crop": crop, "disease": disease}
+
+    for key, info in PEST_KNOWLEDGE.items():
+        if info["urdu_name"] in urdu_text:
+            return {"type": "pest", "pest_info": info}
+        if key in urdu_text.lower():
+            return {"type": "pest", "pest_info": info}
+
+    return None
+
+
 def get_disease_info(crop_id, disease_name):
     """Get detailed information about a specific disease."""
     key = f"{crop_id}_{disease_name.lower().replace(' ', '_').replace('(', '').replace(')', '')}"
