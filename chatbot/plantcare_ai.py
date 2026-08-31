@@ -393,6 +393,25 @@ def _translate_to_urdu(english_text: str) -> str:
     )
     return response.choices[0].message.content
 
+
+def _translate_to_english(urdu_text: str) -> str:
+    """Use Groq to translate an Urdu query into English for dataset search."""
+    response = client.chat.completions.create(
+        model="openai/gpt-oss-20b",
+        messages=[
+            {"role": "system", "content": (
+                "You are a translator. Convert the following Urdu text from a "
+                "Pakistani farmer into clear, simple English. Focus on the "
+                "agricultural meaning — what crop, disease, symptom, or treatment "
+                "they are asking about. Return ONLY the English translation, "
+                "nothing else."
+            )},
+            {"role": "user", "content": urdu_text}
+        ],
+        temperature=0.3
+    )
+    return response.choices[0].message.content
+
 # =========================================================
 # MAIN CHAT FUNCTION FOR STREAMLIT
 # =========================================================
@@ -408,7 +427,16 @@ def ask(message: str, context: dict = None, history: list = None) -> str:
         if context.get("severity"):
             conversation_context["severity"] = context["severity"]
 
-    results = search_dataset(message, top_k=3)
+    # If the farmer speaks Urdu, translate to English for dataset search
+    # so the TF-IDF matching works (dataset is in English).
+    search_message = message
+    if _is_urdu(message):
+        try:
+            search_message = _translate_to_english(message)
+        except Exception:
+            search_message = message
+
+    results = search_dataset(search_message, top_k=3)
 
     if results:
         best = results[0]
