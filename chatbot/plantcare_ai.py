@@ -7,77 +7,79 @@ to answer user questions about plant diseases, symptoms, prevention, and treatme
 
 import os
 from pathlib import Path
-from datasets import load_from_disk
-from sklearn.feature_extraction.text import TfidfVectorizer
-from sklearn.metrics.pairwise import cosine_similarity
-from dotenv import load_dotenv
-from groq import Groq
 
 # =========================================================
-# 1. LOAD ENVIRONMENT VARIABLES
+# LAZY INITIALIZATION
 # =========================================================
-load_dotenv()
-api_key = os.getenv("GROQ_API_KEY")
+_initialized = False
+client = None
+data = None
+questions = None
+question_vectors = None
+vectorizer = None
 
-if not api_key:
-    raise ValueError(
-        "GROQ_API_KEY not found. Please set it in your .env file."
-    )
-
-client = Groq(api_key=api_key)
-
-# =========================================================
-# 2. LOAD HUGGING FACE DATASET
-# =========================================================
-DATASET_PATH = Path(__file__).parent / "hf_dataset"
-
-print("Loading plant disease dataset...")
-dataset = load_from_disk(str(DATASET_PATH))
-
-# Get first available split
-split_name = list(dataset.keys())[0]
-data = dataset[split_name]
-
-print(f"Using split: {split_name}")
-print(f"Number of records: {data.num_rows}")
-
-# =========================================================
-# 3. GET QUESTIONS FROM DATASET
-# =========================================================
-questions = []
-for question in data["question"]:
-    if question is None:
-        questions.append("")
-    else:
-        questions.append(str(question))
-
-# =========================================================
-# 4. CREATE TF-IDF SEARCH ENGINE
-# =========================================================
-print("Building chatbot knowledge search...")
-
-vectorizer = TfidfVectorizer(
-    lowercase=True,
-    stop_words="english",
-    ngram_range=(1, 2)
-)
-
-question_vectors = vectorizer.fit_transform(questions)
-print("Knowledge search ready!")
-
-# =========================================================
-# 5. CONVERSATION CONTEXT
-# =========================================================
 conversation_context = {
     "crop": None,
     "disease": None
 }
 
-# Follow-up question indicators
 FOLLOW_UP_WORDS = [
     "it", "its", "this", "that", "these", "those",
     "the disease", "the plant", "the crop"
 ]
+
+
+def _get_api_key():
+    """Get GROQ_API_KEY from env or Streamlit secrets."""
+    key = os.getenv("GROQ_API_KEY")
+    if key:
+        return key
+    try:
+        import streamlit as st
+        key = st.secrets.get("GROQ_API_KEY")
+        if key:
+            return key
+    except Exception:
+        pass
+    return None
+
+
+def _initialize():
+    """Load dataset, build vectorizer, create Groq client. Called lazily on first ask()."""
+    global _initialized, client, data, questions, question_vectors, vectorizer
+
+    if _initialized:
+        return
+
+    from datasets import load_from_disk
+    from sklearn.feature_extraction.text import TfidfVectorizer as _TfidfVectorizer
+    from sklearn.metrics.pairwise import cosine_similarity as _cosine_sim
+    from groq import Groq
+
+    api_key = _get_api_key()
+    if not api_key:
+        raise ValueError(
+            "GROQ_API_KEY not found. Set it in Streamlit Cloud secrets or .env file."
+        )
+    client = Groq(api_key=api_key)
+
+    DATASET_PATH = Path(__file__).parent / "hf_dataset"
+    print("Loading plant disease dataset...")
+    dataset = load_from_disk(str(DATASET_PATH))
+    split_name = list(dataset.keys())[0]
+    data = dataset[split_name]
+    print(f"Using split: {split_name}, records: {data.num_rows}")
+
+    questions = []
+    for q in data["question"]:
+        questions.append("" if q is None else str(q))
+
+    print("Building chatbot knowledge search...")
+    vectorizer = _TfidfVectorizer(lowercase=True, stop_words="english", ngram_range=(1, 2))
+    question_vectors = vectorizer.fit_transform(questions)
+    print("Knowledge search ready!")
+
+    _initialized = True
 
 # =========================================================
 # 6. SYSTEM INSTRUCTIONS
@@ -196,31 +198,30 @@ Do not answer unrelated questions.
 # =========================================================
 def search_dataset(user_question, top_k=3):
     """Search the dataset for relevant Q&A pairs."""
-    
-    # Get current memory
+    from sklearn.metrics.pairwise import cosine_similarity
+
+    _initialize()
+
     previous_disease = conversation_context.get("disease")
     previous_crop = conversation_context.get("crop")
-    
-    # Build search question with context
+
     search_question = user_question
     if previous_disease:
         search_question += " " + str(previous_disease)
     if previous_crop:
         search_question += " " + str(previous_crop)
-    
-    # TF-IDF search
+
     user_vector = vectorizer.transform([search_question])
     similarities = cosine_similarity(user_vector, question_vectors)[0]
-    
-    # Boost results matching current disease
+
     if previous_disease:
         for i in range(len(similarities)):
             disease_name = str(data["disease"][i]).lower()
             if previous_disease.lower() in disease_name:
                 similarities[i] += 0.20
-    
+
     top_indexes = similarities.argsort()[-top_k:][::-1]
-    
+
     results = []
     for index in top_indexes:
         score = similarities[index]
@@ -235,7 +236,7 @@ def search_dataset(user_question, top_k=3):
             "question_category": data["question_category"][index]
         }
         results.append(record)
-    
+
     return results
 
 # =========================================================
@@ -365,39 +366,37 @@ for farmers.
 def ask(message: str, context: dict = None, history: list = None) -> str:
     """
     Main function for Streamlit integration.
-    
+
     Args:
         message: User's question
         context: Diagnosis context (crop, disease, severity, etc.)
         history: Conversation history (not used currently)
-    
+
     Returns:
         AI response string
     """
-    # Update conversation context from diagnosis if provided
+    _initialize()
+
     if context:
         if context.get("disease") and not conversation_context["disease"]:
             conversation_context["disease"] = context["disease"]
         if context.get("crop") and not conversation_context["crop"]:
             conversation_context["crop"] = context["crop"]
-    
-    # Search dataset
+
     results = search_dataset(message, top_k=3)
-    
-    # Update conversation context from search results
+
     if results:
         best_result = results[0]
         disease = best_result.get("disease")
         crop = best_result.get("crop")
-        
+
         if disease and not conversation_context["disease"]:
             conversation_context["disease"] = str(disease)
         if crop and not conversation_context["crop"]:
             conversation_context["crop"] = str(crop)
-    
-    # Generate answer
+
     answer = generate_answer(message, results)
-    
+
     return answer
 
 def reset_context():

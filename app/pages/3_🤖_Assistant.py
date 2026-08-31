@@ -11,8 +11,15 @@ from app.styles.theme import inject_theme
 from app.components.nav import render_sidebar
 from app.components.state import init_state
 from app.components.ui import eyebrow, divider, severity_badge
-from chatbot.plantcare_ai import ask
 from data.crops import SUPPORTED_CROPS
+
+try:
+    from chatbot.plantcare_ai import ask
+    chatbot_available = True
+    chatbot_error = None
+except Exception as e:
+    chatbot_available = False
+    chatbot_error = str(e)
 
 st.set_page_config(page_title="AI Assistant · Plant Health AI", page_icon="🤖", layout="wide")
 
@@ -32,6 +39,12 @@ st.markdown(
     unsafe_allow_html=True,
 )
 divider()
+
+if not chatbot_available:
+    st.error("Chatbot dependencies not available. Please install the required packages:")
+    st.code("datasets scikit-learn groq python-dotenv", language="bash")
+    st.info(f"Error details: {chatbot_error}")
+    st.stop()
 
 if result is None:
     st.info("No diagnosis on file yet — you can still chat, but answers will be general "
