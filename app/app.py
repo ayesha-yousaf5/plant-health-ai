@@ -58,10 +58,10 @@ with left:
     st.markdown(
         """
         <div style="display:flex; gap:1.6rem; margin-top:2rem; flex-wrap:wrap;">
-            <div><span class="stat-value" style="font-size:1.3rem;">12</span>
+            <div><span class="stat-value" style="font-size:1.3rem;">11</span>
                  <div class="stat-label">Supported crops</div></div>
-            <div><span class="stat-value" style="font-size:1.3rem;">3</span>
-                 <div class="stat-label">Severity tiers</div></div>
+            <div><span class="stat-value" style="font-size:1.3rem;">38</span>
+                 <div class="stat-label">Detectable diseases</div></div>
             <div><span class="stat-value" style="font-size:1.3rem;">&lt;10s</span>
                  <div class="stat-label">Typical analysis time</div></div>
         </div>
@@ -88,11 +88,10 @@ with right:
                 </div>
             </div>
             <div class="divider-line" style="margin:1.2rem 0;"></div>
-            <div class="eyebrow">Assistant</div>
+            <div class="eyebrow">Krishi Mitra</div>
             <p style="margin-top:0.4rem; color:var(--muted); font-size:0.92rem;">
-                "Remove affected leaves, improve airflow, and monitor the plant
-                over the next few days — full management guidance is available
-                once your diagnosis is ready."
+                "Remove affected leaves, apply neem oil spray, and improve airflow
+                — I'll guide you through treatment options based on severity."
             </p>
         </div>
         """,
@@ -109,7 +108,7 @@ steps = [
     ("01", "Select your crop", "Choose from the supported crop list so the model knows what it's looking at."),
     ("02", "Upload or capture a leaf", "Take a clear photo of the affected leaf, or upload one from your gallery."),
     ("03", "Get disease & severity", "The model returns a diagnosis, a confidence score, and a Mild / Moderate / Severe rating."),
-    ("04", "Ask the assistant", "Get plain-language management guidance grounded in your specific result."),
+    ("04", "Ask Krishi Mitra", "Get treatment advice, prevention tips, and organic remedies from your farming assistant."),
 ]
 
 cols = st.columns(4, gap="medium")

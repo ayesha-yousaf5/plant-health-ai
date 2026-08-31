@@ -21,7 +21,7 @@ except Exception as e:
     chatbot_available = False
     chatbot_error = str(e)
 
-st.set_page_config(page_title="AI Assistant · Plant Health AI", page_icon="🤖", layout="wide")
+st.set_page_config(page_title="Krishi Mitra · Plant Health AI", page_icon="🌱", layout="wide")
 
 init_state()
 inject_theme()
@@ -29,15 +29,27 @@ render_sidebar(active="assistant")
 
 result = st.session_state.get("diagnosis_result")
 
-eyebrow("Step 5")
-st.markdown("## Management Guidance Assistant")
+# ── Hero ──
 st.markdown(
-    '<p style="color:var(--muted); margin-top:-0.6rem;">'
-    "Ask questions about your diagnosis. Answers are general management "
-    "guidance, not an exact treatment prescription."
-    "</p>",
+    """
+    <div style="text-align:center; padding:2rem 0 1rem;">
+        <div style="width:64px;height:64px;border-radius:50%;
+                    background:linear-gradient(135deg, #2D6A4F, #74A57F);
+                    display:inline-flex;align-items:center;justify-content:center;
+                    font-size:2rem;margin-bottom:0.8rem;">
+            🌱
+        </div>
+        <h1 style="margin:0;font-size:2.2rem;">Krishi Mitra</h1>
+        <p style="font-family:'IBM Plex Mono',monospace;font-size:0.78rem;
+                  letter-spacing:0.1em;color:var(--muted);text-transform:uppercase;
+                  margin-top:0.3rem;">
+            कृषि मित्र · Your Farming Companion
+        </p>
+    </div>
+    """,
     unsafe_allow_html=True,
 )
+
 divider()
 
 if not chatbot_available:
@@ -88,30 +100,55 @@ else:
     )
     context = result
 
-# --------------------------------------------------------------- CHAT UI
+# ── Chat UI ──
 for turn in st.session_state["chat_history"]:
-    with st.chat_message(turn["role"], avatar="🌿" if turn["role"] == "assistant" else None):
+    with st.chat_message(turn["role"], avatar="🌱" if turn["role"] == "assistant" else None):
         st.markdown(turn["content"])
 
-if not st.session_state["chat_history"] and result and not result.get("uncertain"):
+if not st.session_state["chat_history"]:
     st.markdown(
         '<div style="display:flex; gap:0.5rem; flex-wrap:wrap; margin-bottom:0.8rem;">'
         '<span class="pill">Try: "What should I do?"</span>'
+        '<span class="pill">Try: "Organic treatment?"</span>'
+        '<span class="pill">Try: "How to prevent?"</span>'
         '<span class="pill">Try: "Will it spread?"</span>'
-        '<span class="pill">Try: "How confident are you?"</span>'
         "</div>",
         unsafe_allow_html=True,
     )
 
-prompt = st.chat_input("Ask about your diagnosis, e.g. \"What should I do?\"")
+# Voice output toggle
+if "voice_output_enabled" not in st.session_state:
+    st.session_state.voice_output_enabled = False
+
+voice_cols = st.columns([5, 1])
+with voice_cols[0]:
+    st.markdown(
+        '<div style="font-size:0.85rem; color:var(--muted);">🔊 Enable Hindi voice output for responses</div>',
+        unsafe_allow_html=True,
+    )
+with voice_cols[1]:
+    toggle_val = st.toggle("Voice", key="voice_toggle_fullpage", label_visibility="collapsed")
+    st.session_state.voice_output_enabled = toggle_val
+
+prompt = st.chat_input("Ask Krishi Mitra about your crop...")
 if prompt:
     st.session_state["chat_history"].append({"role": "user", "content": prompt})
     with st.chat_message("user"):
         st.markdown(prompt)
 
-    with st.chat_message("assistant", avatar="🌿"):
-        with st.spinner("Thinking..."):
+    with st.chat_message("assistant", avatar="🌱"):
+        with st.spinner("Krishi Mitra is thinking..."):
             reply = ask(prompt, context, st.session_state["chat_history"])
         st.markdown(reply)
+        
+        # Voice output in Hindi
+        if st.session_state.get("voice_output_enabled", False):
+            try:
+                from app.components.voice import text_to_speech_hindi
+                audio_bytes = text_to_speech_hindi(reply)
+                if audio_bytes:
+                    st.audio(audio_bytes, format='audio/mp3')
+            except Exception:
+                pass
 
     st.session_state["chat_history"].append({"role": "assistant", "content": reply})

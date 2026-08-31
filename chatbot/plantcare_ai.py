@@ -21,7 +21,8 @@ vectorizer = None
 
 conversation_context = {
     "crop": None,
-    "disease": None
+    "disease": None,
+    "severity": None,
 }
 
 FOLLOW_UP_WORDS = [
@@ -83,119 +84,37 @@ def _initialize():
     _initialized = True
 
 # =========================================================
-# 6. SYSTEM INSTRUCTIONS
+# SYSTEM INSTRUCTIONS
 # =========================================================
-system_message = """
-You are PlantCare AI, a friendly and practical plant health assistant
-designed especially for farmers.
+system_message = """You are Krishi Mitra, a practical plant health assistant for farmers.
 
-Your job is to help users with:
-- Plant diseases
-- Plant symptoms
-- Disease causes
-- Disease severity
-- Disease prevention
-- Disease management
-- Crop health
-- Basic plant care
+Core behavior:
+- Give SPECIFIC advice about the exact disease the farmer is asking about. Never give generic filler.
+- Use simple, everyday language. Avoid jargon unless you explain it.
+- Be direct: lead with the most actionable information first.
+- When the knowledge base provides treatment dosages or product names, ALWAYS include them. Farmers need specifics.
+- Use short bullet points for readability.
+- Keep answers concise but complete: 40-80 words for simple questions, up to 120 words for treatment or prevention questions.
 
-IMPORTANT RULES:
+Answer structure:
+- Start with a one-line direct answer to the question.
+- Then add 2-4 bullet points with specifics (dosages, timing, products).
+- End with one practical tip if relevant.
+- Use **bold** for headings. Leave blank lines between sections.
 
-1. Use the retrieved dataset information as your main source.
-2. Do not invent disease names, symptoms, severity levels, treatments,
-   or other agricultural information.
-3. If the retrieved information is not sufficient, clearly say:
-   "The available dataset does not contain enough information to answer
-   this question accurately."
-4. Keep answers SHORT and useful.
-5. Normally answer in about 20–50 words.
-6. Use simple language that a farmer can easily understand.
-7. Avoid unnecessary technical terms.
-8. Do not give long explanations unless the user asks for more detail.
-9. Give the most important information first.
-10. Use short bullet points when they make the answer easier to understand.
-11. Be friendly, clear, and practical.
-12. Format answers clearly using Markdown.
-13. Put every heading on its own line and make headings bold.
-14. Use bullet points for lists.
-15. Leave a blank line between different sections.
-16. Keep answers short and easy to read.
-17. Do not write the entire answer as one large paragraph.
+What to avoid:
+- Do not repeat the same generic advice for different diseases. Each disease has unique treatments, causes, and symptoms. Use them.
+- Do not say "consult an expert" as the only advice. Give actionable guidance first, then mention consulting if needed.
+- Do not invent disease names or treatments not in the provided knowledge.
+- Do not answer non-agriculture questions. Politely redirect: "I'm Krishi Mitra, your plant health assistant. I can help with crop diseases, treatments, and prevention."
 
-IMPORTANT ANSWER FORMAT:
-
-Always organize your answer into clearly separated sections.
-
-For every heading:
-- Put the heading on its own line.
-- Make the heading bold using Markdown.
-- Leave a blank line before and after the heading.
-- Do not put the heading and its explanation on the same line.
-
-For lists:
-- Put EVERY item on a separate line.
-- Use "- " before every item.
-- Never put multiple bullet points on one line.
-
-When answering multiple parts of a question, create a separate
-heading for each part.
-
-Example:
-
-**Apple Scab**
-
-Apple scab is a fungal disease that affects apple trees.
-
-**Symptoms**
-
-- Olive-green spots appear on leaves.
-- Dark scabs may appear on fruit.
-- Leaves may fall early.
-
-**Causes**
-
-Apple scab is caused by a fungus that spreads in wet conditions.
-
-**Prevention**
-
-- Remove infected leaves.
-- Keep good airflow around the tree.
-
-Keep answers short, normally 20–50 words.
-Use simple language suitable for farmers.
-
-If the user asks questions unrelated to agriculture or plant health, say:
-
-"I'm PlantCare AI, a plant health assistant. I can only help with
-plant diseases, symptoms, prevention, severity, and plant care."
-
-CONVERSATION MEMORY:
-
-Remember the main plant disease being discussed.
-
-If the user uses words such as:
-"it", "this disease", "this plant", "its symptoms", "its causes",
-"its prevention", "its treatment"
-
-understand that they are referring to the disease currently
-being discussed in the conversation.
-
-For example:
-
-User: What is Apple Scab?
-Assistant: [answer]
-
-User: What are its causes?
-Assistant: Answer about Apple Scab.
-
-If the user clearly names a different disease, switch the
-conversation topic to that disease.
-
-Do not answer unrelated questions.
+Conversation memory:
+- Remember the disease being discussed. If the user says "it", "this disease", or "its treatment", refer to the current disease.
+- If the user names a different disease, switch to that topic.
 """
 
 # =========================================================
-# 7. SEARCH DATASET
+# SEARCH DATASET
 # =========================================================
 def search_dataset(user_question, top_k=3):
     """Search the dataset for relevant Q&A pairs."""
@@ -242,173 +161,129 @@ def search_dataset(user_question, top_k=3):
 
 
 def _build_knowledge_context(disease_info, user_question):
-    """Build context string from disease knowledge base based on question."""
-    question_lower = user_question.lower()
-    
-    context_parts = []
-    context_parts.append(f"\n=== DETAILED DISEASE KNOWLEDGE BASE ===")
-    context_parts.append(f"Disease: {disease_info['disease']}")
-    context_parts.append(f"Pathogen: {disease_info['pathogen']}")
-    
-    # Always include symptoms
-    context_parts.append(f"\nSymptoms:")
-    for symptom in disease_info['symptoms']:
-        context_parts.append(f"- {symptom}")
-    
-    # Include causes
-    context_parts.append(f"\nCauses:")
-    for cause in disease_info['causes']:
-        context_parts.append(f"- {cause}")
-    
-    # Include treatments based on question
-    if any(word in question_lower for word in ['treat', 'control', 'manage', 'cure', 'spray', 'chemical', 'organic', 'pesticide', 'fungicide']):
-        context_parts.append(f"\nOrganic/Biological Treatments:")
-        for treatment in disease_info['treatment_organic']:
-            context_parts.append(f"- {treatment}")
-        
-        context_parts.append(f"\nChemical Treatments:")
-        for treatment in disease_info['treatment_chemical']:
-            context_parts.append(f"- {treatment}")
-    
-    # Include prevention
-    if any(word in question_lower for word in ['prevent', 'avoid', 'protect', 'stop', 'reduce risk']):
-        context_parts.append(f"\nPrevention Methods:")
-        for prevention in disease_info['prevention']:
-            context_parts.append(f"- {prevention}")
-    
-    # Include severity indicators if severity is mentioned
-    if any(word in question_lower for word in ['severe', 'mild', 'moderate', 'stage', 'level']):
-        if 'severity_indicators' in disease_info:
-            context_parts.append(f"\nSeverity Indicators:")
-            for level, description in disease_info['severity_indicators'].items():
-                context_parts.append(f"- {level.capitalize()}: {description}")
-    
-    context_parts.append(f"\n=== END KNOWLEDGE BASE ===\n")
-    
-    return "\n".join(context_parts)
+    """Build comprehensive context from disease knowledge base.
+
+    Always includes the full disease profile so the LLM can give
+    specific, varied answers instead of generic ones.
+    """
+    parts = []
+    parts.append(f"\n=== DISEASE KNOWLEDGE FOR: {disease_info['disease'].upper()} ===")
+    parts.append(f"Pathogen: {disease_info['pathogen']}")
+
+    parts.append(f"\nSymptoms:")
+    for s in disease_info['symptoms']:
+        parts.append(f"- {s}")
+
+    parts.append(f"\nCauses and spread:")
+    for c in disease_info['causes']:
+        parts.append(f"- {c}")
+
+    parts.append(f"\nOrganic / Biological treatments:")
+    for t in disease_info['treatment_organic']:
+        parts.append(f"- {t}")
+
+    parts.append(f"\nChemical treatments:")
+    for t in disease_info['treatment_chemical']:
+        parts.append(f"- {t}")
+
+    parts.append(f"\nPrevention methods:")
+    for p in disease_info['prevention']:
+        parts.append(f"- {p}")
+
+    if 'severity_indicators' in disease_info:
+        parts.append(f"\nSeverity levels:")
+        for level, desc in disease_info['severity_indicators'].items():
+            parts.append(f"- {level.capitalize()}: {desc}")
+
+    parts.append(f"=== END KNOWLEDGE ===\n")
+    return "\n".join(parts)
 
 
 def _format_knowledge_base_answer(disease_info, user_question):
-    """Format a direct answer from knowledge base when dataset retrieval fails."""
+    """Format a direct, comprehensive answer from the knowledge base."""
     question_lower = user_question.lower()
-    
-    answer_parts = []
-    answer_parts.append(f"**{disease_info['disease']}**")
-    answer_parts.append(f"*Pathogen: {disease_info['pathogen']}*\n")
-    
-    # Provide relevant information based on question
-    if any(word in question_lower for word in ['symptom', 'sign', 'look', 'appear', 'identify']):
-        answer_parts.append("**Symptoms:**")
-        for symptom in disease_info['symptoms']:
-            answer_parts.append(f"- {symptom}")
-    
-    if any(word in question_lower for word in ['cause', 'why', 'how', 'reason', 'spread']):
-        answer_parts.append("\n**Causes:**")
-        for cause in disease_info['causes']:
-            answer_parts.append(f"- {cause}")
-    
-    if any(word in question_lower for word in ['treat', 'control', 'manage', 'cure', 'spray', 'what should i do', 'help']):
-        answer_parts.append("\n**Organic Treatments:**")
-        for treatment in disease_info['treatment_organic']:
-            answer_parts.append(f"- {treatment}")
-        
-        answer_parts.append("\n**Chemical Treatments:**")
-        for treatment in disease_info['treatment_chemical']:
-            answer_parts.append(f"- {treatment}")
-    
-    if any(word in question_lower for word in ['prevent', 'avoid', 'protect', 'stop spread']):
-        answer_parts.append("\n**Prevention:**")
-        for prevention in disease_info['prevention']:
-            answer_parts.append(f"- {prevention}")
-    
-    # If no specific keywords, provide a general overview
-    if not any(word in question_lower for word in ['symptom', 'cause', 'treat', 'prevent', 'control', 'manage']):
-        answer_parts.append("\n**Key Information:**")
-        answer_parts.append(f"\n*Symptoms:* {', '.join(disease_info['symptoms'][:2])}")
-        answer_parts.append(f"\n*Main Treatment:* {disease_info['treatment_organic'][0]}")
-        answer_parts.append(f"\n*Prevention:* {disease_info['prevention'][0]}")
-    
-    answer_parts.append("\n\n*This is general management guidance. Confirm product choice and dosage with a local agricultural extension officer before applying anything.*")
-    
-    return "\n".join(answer_parts)
+
+    lines = []
+    lines.append(f"**{disease_info['disease']}**")
+    lines.append(f"*Caused by: {disease_info['pathogen']}*\n")
+
+    is_treatment_q = any(w in question_lower for w in ['treat', 'control', 'manage', 'cure', 'spray', 'what should i do', 'help', 'remove', 'kill'])
+    is_prevention_q = any(w in question_lower for w in ['prevent', 'avoid', 'protect', 'stop spread', 'stop it'])
+    is_symptom_q = any(w in question_lower for w in ['symptom', 'sign', 'look', 'appear', 'identify', 'spot'])
+    is_cause_q = any(w in question_lower for w in ['cause', 'why', 'how', 'reason', 'spread', 'come from'])
+
+    answered_section = False
+
+    if is_symptom_q:
+        lines.append("**Symptoms to look for:**")
+        for s in disease_info['symptoms']:
+            lines.append(f"- {s}")
+        answered_section = True
+
+    if is_cause_q:
+        if answered_section:
+            lines.append("")
+        lines.append("**What causes it:**")
+        for c in disease_info['causes']:
+            lines.append(f"- {c}")
+        answered_section = True
+
+    if is_treatment_q:
+        if answered_section:
+            lines.append("")
+        lines.append("**Organic treatments:**")
+        for t in disease_info['treatment_organic']:
+            lines.append(f"- {t}")
+        lines.append("")
+        lines.append("**Chemical treatments:**")
+        for t in disease_info['treatment_chemical']:
+            lines.append(f"- {t}")
+        answered_section = True
+
+    if is_prevention_q:
+        if answered_section:
+            lines.append("")
+        lines.append("**How to prevent it:**")
+        for p in disease_info['prevention']:
+            lines.append(f"- {p}")
+        answered_section = True
+
+    if not answered_section:
+        lines.append("**Key symptoms:**")
+        for s in disease_info['symptoms'][:3]:
+            lines.append(f"- {s}")
+        lines.append("")
+        lines.append("**First steps:**")
+        lines.append(f"- {disease_info['treatment_organic'][0]}")
+        lines.append(f"- {disease_info['treatment_organic'][1]}")
+        lines.append("")
+        lines.append("**Prevention:**")
+        lines.append(f"- {disease_info['prevention'][0]}")
+
+    lines.append("\n*Confirm product choice and dosage with your local agricultural extension officer.*")
+    return "\n".join(lines)
 
 
 # =========================================================
-# 8. GENERATE ANSWER USING GROQ
+# GENERATE ANSWER USING GROQ
 # =========================================================
 def generate_answer(user_question, retrieved_results):
-    """Generate answer using Groq API with enhanced knowledge base."""
-    
-    # Resolve follow-up questions
+    """Generate answer using Groq API with knowledge base."""
+
     resolved_question = user_question
-    question_lower = user_question.lower()
-    
+
     if conversation_context["disease"]:
-        # Check if user is referring to current disease
-        if any(word in f" {question_lower} " for word in [" it ", " its "]):
-            resolved_question = (
-                f"{user_question}\n\n"
-                f"IMPORTANT CONTEXT: The user is referring to the plant disease "
-                f"'{conversation_context['disease']}'."
-            )
-        
+        question_lower = user_question.lower()
         if any(word in question_lower for word in FOLLOW_UP_WORDS):
             resolved_question = (
-                f"{user_question} "
-                f"The user is referring to {conversation_context['disease']}."
+                f"{user_question}\n"
+                f"[The user is referring to {conversation_context['disease']} "
+                f"on {conversation_context['crop']}]"
             )
-    
-    # Check if we have sufficient information
-    if retrieved_results and retrieved_results[0]["score"] < 0.2:
-        # Try to use knowledge base even if dataset retrieval failed
-        if conversation_context["crop"] and conversation_context["disease"]:
-            disease_info = get_disease_info(
-                conversation_context["crop"],
-                conversation_context["disease"]
-            )
-            if disease_info:
-                return _format_knowledge_base_answer(disease_info, user_question)
-        
-        return (
-            "I don't have enough information in my plant disease "
-            "dataset to answer this question accurately."
-        )
-    
-    # Build context from retrieved results
-    context = ""
-    for i, result in enumerate(retrieved_results):
-        context += f"""
-SOURCE {i + 1}
 
-Question:
-{result["question"]}
-
-Answer:
-{result["answer"]}
-
-Crop:
-{result["crop"]}
-
-Disease:
-{result["disease"]}
-
-Severity:
-{result["severity"]}
-
-Category:
-{result["category"]}
-
-Question Category:
-{result["question_category"]}
-
-Similarity:
-{result["score"]}
-
---------------------------------
-"""
-    
-    # Add disease knowledge base information if available
+    # Always try to load disease knowledge base
     knowledge_context = ""
+    disease_info = None
     if conversation_context["crop"] and conversation_context["disease"]:
         disease_info = get_disease_info(
             conversation_context["crop"],
@@ -416,105 +291,85 @@ Similarity:
         )
         if disease_info:
             knowledge_context = _build_knowledge_context(disease_info, user_question)
-    
-    # Add topic information if we have a current topic
-    current_topic = conversation_context["disease"]
-    if current_topic:
-        topic_information = f"""
-The current conversation is about:
-{current_topic}
 
-If the user uses words such as "it", "this disease",
-"this plant", "its symptoms", or "its treatment",
-understand that they are referring to the current topic.
-"""
-    else:
-        topic_information = ""
-    
-    # Build user prompt
-    user_prompt = f"""
-User question:
+    # Low-confidence dataset retrieval — fall back to knowledge base directly
+    if not retrieved_results or retrieved_results[0]["score"] < 0.2:
+        if disease_info:
+            return _format_knowledge_base_answer(disease_info, user_question)
+        return (
+            "I don't have enough information to answer this accurately. "
+            "Try asking about symptoms, treatments, or prevention for your crop's disease."
+        )
 
-{resolved_question}
+    # Build context from retrieved dataset results
+    context_parts = []
+    for i, result in enumerate(retrieved_results):
+        context_parts.append(
+            f"SOURCE {i+1} (relevance: {result['score']:.2f})\n"
+            f"Q: {result['question']}\n"
+            f"A: {result['answer']}\n"
+            f"Crop: {result['crop']}, Disease: {result['disease']}\n"
+        )
+    context = "\n---\n".join(context_parts)
 
-{topic_information}
+    severity_note = ""
+    if conversation_context.get("severity"):
+        severity_note = (
+            f"\nThe farmer's diagnosis shows severity: {conversation_context['severity']}. "
+            f"Tailor your advice to this severity level."
+        )
 
-Relevant information retrieved from the
-plant disease dataset:
+    user_prompt = f"""Farmer's question: {resolved_question}
+{severity_note}
 
+Retrieved from plant disease dataset:
 {context}
-
 {knowledge_context}
 
-Using the retrieved information, answer
-the user's question clearly and accurately.
-
-If the user is asking a follow-up question,
-use the current conversation topic to understand
-what they are referring to.
-
-Keep the answer short, simple, and suitable
-for farmers.
+Answer the farmer's question using the information above.
+Prioritize the DISEASE KNOWLEDGE section for specific treatments, dosages, and prevention steps.
+Be specific — include product names, dosages, and timing when available.
 """
-    
-    # Groq API call
+
     response = client.chat.completions.create(
         model="openai/gpt-oss-20b",
         messages=[
-            {
-                "role": "system",
-                "content": system_message
-            },
-            {
-                "role": "user",
-                "content": user_prompt
-            }
+            {"role": "system", "content": system_message},
+            {"role": "user", "content": user_prompt}
         ],
-        temperature=0.2
+        temperature=0.3
     )
-    
+
     return response.choices[0].message.content
 
 # =========================================================
-# 9. MAIN CHAT FUNCTION FOR STREAMLIT
+# MAIN CHAT FUNCTION FOR STREAMLIT
 # =========================================================
 def ask(message: str, context: dict = None, history: list = None) -> str:
-    """
-    Main function for Streamlit integration.
-
-    Args:
-        message: User's question
-        context: Diagnosis context (crop, disease, severity, etc.)
-        history: Conversation history (not used currently)
-
-    Returns:
-        AI response string
-    """
+    """Main function for Streamlit integration."""
     _initialize()
 
     if context:
-        if context.get("disease") and not conversation_context["disease"]:
+        if context.get("disease"):
             conversation_context["disease"] = context["disease"]
-        if context.get("crop") and not conversation_context["crop"]:
+        if context.get("crop"):
             conversation_context["crop"] = context["crop"]
+        if context.get("severity"):
+            conversation_context["severity"] = context["severity"]
 
     results = search_dataset(message, top_k=3)
 
     if results:
-        best_result = results[0]
-        disease = best_result.get("disease")
-        crop = best_result.get("crop")
+        best = results[0]
+        if best.get("disease") and not conversation_context["disease"]:
+            conversation_context["disease"] = str(best["disease"])
+        if best.get("crop") and not conversation_context["crop"]:
+            conversation_context["crop"] = str(best["crop"])
 
-        if disease and not conversation_context["disease"]:
-            conversation_context["disease"] = str(disease)
-        if crop and not conversation_context["crop"]:
-            conversation_context["crop"] = str(crop)
-
-    answer = generate_answer(message, results)
-
-    return answer
+    return generate_answer(message, results)
 
 def reset_context():
     """Reset conversation context."""
     conversation_context["crop"] = None
     conversation_context["disease"] = None
+    conversation_context["severity"] = None
