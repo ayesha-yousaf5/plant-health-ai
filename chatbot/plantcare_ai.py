@@ -7,6 +7,7 @@ to answer user questions about plant diseases, symptoms, prevention, and treatme
 
 import os
 from pathlib import Path
+from chatbot.disease_knowledge import get_disease_info, get_treatment_info, get_crop_diseases
 
 # =========================================================
 # LAZY INITIALIZATION
@@ -239,11 +240,104 @@ def search_dataset(user_question, top_k=3):
 
     return results
 
+
+def _build_knowledge_context(disease_info, user_question):
+    """Build context string from disease knowledge base based on question."""
+    question_lower = user_question.lower()
+    
+    context_parts = []
+    context_parts.append(f"\n=== DETAILED DISEASE KNOWLEDGE BASE ===")
+    context_parts.append(f"Disease: {disease_info['disease']}")
+    context_parts.append(f"Pathogen: {disease_info['pathogen']}")
+    
+    # Always include symptoms
+    context_parts.append(f"\nSymptoms:")
+    for symptom in disease_info['symptoms']:
+        context_parts.append(f"- {symptom}")
+    
+    # Include causes
+    context_parts.append(f"\nCauses:")
+    for cause in disease_info['causes']:
+        context_parts.append(f"- {cause}")
+    
+    # Include treatments based on question
+    if any(word in question_lower for word in ['treat', 'control', 'manage', 'cure', 'spray', 'chemical', 'organic', 'pesticide', 'fungicide']):
+        context_parts.append(f"\nOrganic/Biological Treatments:")
+        for treatment in disease_info['treatment_organic']:
+            context_parts.append(f"- {treatment}")
+        
+        context_parts.append(f"\nChemical Treatments:")
+        for treatment in disease_info['treatment_chemical']:
+            context_parts.append(f"- {treatment}")
+    
+    # Include prevention
+    if any(word in question_lower for word in ['prevent', 'avoid', 'protect', 'stop', 'reduce risk']):
+        context_parts.append(f"\nPrevention Methods:")
+        for prevention in disease_info['prevention']:
+            context_parts.append(f"- {prevention}")
+    
+    # Include severity indicators if severity is mentioned
+    if any(word in question_lower for word in ['severe', 'mild', 'moderate', 'stage', 'level']):
+        if 'severity_indicators' in disease_info:
+            context_parts.append(f"\nSeverity Indicators:")
+            for level, description in disease_info['severity_indicators'].items():
+                context_parts.append(f"- {level.capitalize()}: {description}")
+    
+    context_parts.append(f"\n=== END KNOWLEDGE BASE ===\n")
+    
+    return "\n".join(context_parts)
+
+
+def _format_knowledge_base_answer(disease_info, user_question):
+    """Format a direct answer from knowledge base when dataset retrieval fails."""
+    question_lower = user_question.lower()
+    
+    answer_parts = []
+    answer_parts.append(f"**{disease_info['disease']}**")
+    answer_parts.append(f"*Pathogen: {disease_info['pathogen']}*\n")
+    
+    # Provide relevant information based on question
+    if any(word in question_lower for word in ['symptom', 'sign', 'look', 'appear', 'identify']):
+        answer_parts.append("**Symptoms:**")
+        for symptom in disease_info['symptoms']:
+            answer_parts.append(f"- {symptom}")
+    
+    if any(word in question_lower for word in ['cause', 'why', 'how', 'reason', 'spread']):
+        answer_parts.append("\n**Causes:**")
+        for cause in disease_info['causes']:
+            answer_parts.append(f"- {cause}")
+    
+    if any(word in question_lower for word in ['treat', 'control', 'manage', 'cure', 'spray', 'what should i do', 'help']):
+        answer_parts.append("\n**Organic Treatments:**")
+        for treatment in disease_info['treatment_organic']:
+            answer_parts.append(f"- {treatment}")
+        
+        answer_parts.append("\n**Chemical Treatments:**")
+        for treatment in disease_info['treatment_chemical']:
+            answer_parts.append(f"- {treatment}")
+    
+    if any(word in question_lower for word in ['prevent', 'avoid', 'protect', 'stop spread']):
+        answer_parts.append("\n**Prevention:**")
+        for prevention in disease_info['prevention']:
+            answer_parts.append(f"- {prevention}")
+    
+    # If no specific keywords, provide a general overview
+    if not any(word in question_lower for word in ['symptom', 'cause', 'treat', 'prevent', 'control', 'manage']):
+        answer_parts.append("\n**Key Information:**")
+        answer_parts.append(f"\n*Symptoms:* {', '.join(disease_info['symptoms'][:2])}")
+        answer_parts.append(f"\n*Main Treatment:* {disease_info['treatment_organic'][0]}")
+        answer_parts.append(f"\n*Prevention:* {disease_info['prevention'][0]}")
+    
+    answer_parts.append("\n\n*This is general management guidance. Confirm product choice and dosage with a local agricultural extension officer before applying anything.*")
+    
+    return "\n".join(answer_parts)
+
+
 # =========================================================
 # 8. GENERATE ANSWER USING GROQ
 # =========================================================
 def generate_answer(user_question, retrieved_results):
-    """Generate answer using Groq API."""
+    """Generate answer using Groq API with enhanced knowledge base."""
     
     # Resolve follow-up questions
     resolved_question = user_question
@@ -266,6 +360,15 @@ def generate_answer(user_question, retrieved_results):
     
     # Check if we have sufficient information
     if retrieved_results and retrieved_results[0]["score"] < 0.2:
+        # Try to use knowledge base even if dataset retrieval failed
+        if conversation_context["crop"] and conversation_context["disease"]:
+            disease_info = get_disease_info(
+                conversation_context["crop"],
+                conversation_context["disease"]
+            )
+            if disease_info:
+                return _format_knowledge_base_answer(disease_info, user_question)
+        
         return (
             "I don't have enough information in my plant disease "
             "dataset to answer this question accurately."
@@ -304,6 +407,16 @@ Similarity:
 --------------------------------
 """
     
+    # Add disease knowledge base information if available
+    knowledge_context = ""
+    if conversation_context["crop"] and conversation_context["disease"]:
+        disease_info = get_disease_info(
+            conversation_context["crop"],
+            conversation_context["disease"]
+        )
+        if disease_info:
+            knowledge_context = _build_knowledge_context(disease_info, user_question)
+    
     # Add topic information if we have a current topic
     current_topic = conversation_context["disease"]
     if current_topic:
@@ -330,6 +443,8 @@ Relevant information retrieved from the
 plant disease dataset:
 
 {context}
+
+{knowledge_context}
 
 Using the retrieved information, answer
 the user's question clearly and accurately.
