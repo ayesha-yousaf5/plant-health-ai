@@ -439,6 +439,14 @@ def generate_answer(user_question, retrieved_results, urdu_match=None):
     if urdu_match and urdu_match["type"] == "pest":
         pest_info = urdu_match["pest_info"]
         knowledge_context = _build_pest_context(pest_info)
+    elif urdu_match and urdu_match["type"] == "disease":
+        # Use Urdu disease match directly
+        disease_info = get_disease_info(
+            urdu_match["crop"],
+            urdu_match["disease"]
+        )
+        if disease_info:
+            knowledge_context = _build_knowledge_context(disease_info, user_question)
     elif conversation_context["crop"] and conversation_context["disease"]:
         disease_info = get_disease_info(
             conversation_context["crop"],
