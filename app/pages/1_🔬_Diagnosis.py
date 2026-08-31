@@ -14,6 +14,7 @@ from app.components.nav import render_sidebar
 from app.components.state import init_state, reset_diagnosis
 from app.components.ui import eyebrow, divider
 from app.components.sidebar_chatbot import render_sidebar_chatbot
+from app.components.crop_disease_list import render_crop_disease_list
 from data.crops import SUPPORTED_CROPS
 from models.predictor import run_diagnosis
 
@@ -130,3 +131,7 @@ if st.session_state["diagnosis_running"]:
         st.session_state["diagnosis_result"] = result
         st.session_state["diagnosis_running"] = False
     st.switch_page("pages/2_📊_Results.py")
+
+# --------------------------------------------------------- DISEASE REFERENCE
+divider()
+render_crop_disease_list()
