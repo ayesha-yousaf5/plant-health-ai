@@ -33,6 +33,8 @@ IMAGENET_STD = [0.229, 0.224, 0.225]
 # Crop name mapping: UI format → our format
 CROP_NAME_MAP = {
     "maize": "Corn",
+    "corn / maize": "Corn",
+    "corn": "Corn",
     "rice": "Rice",
     "cotton": "Cotton",
     "apple": "Apple",
@@ -43,6 +45,7 @@ CROP_NAME_MAP = {
     "peas": "Peas",
     "sunflower": "Sunflower",
     "pepper": "Pepper Chilli",
+    "pepper / chilli": "Pepper Chilli",
 }
 
 # Global model state
