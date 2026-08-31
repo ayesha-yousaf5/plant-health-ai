@@ -37,6 +37,30 @@ if result is None or image is None:
 
 crop_label = next((c["label"] for c in SUPPORTED_CROPS if c["id"] == result["crop"]), result["crop"])
 
+# ========================================================== CROP MISMATCH CHECK
+if result.get("crop_mismatch"):
+    predicted_crop_label = result.get("predicted_crop", "unknown")
+    # Map back to UI format
+    from models.disease_model import CROP_NAME_MAP
+    reverse_map = {v: k for k, v in CROP_NAME_MAP.items()}
+    predicted_crop_ui = reverse_map.get(predicted_crop_label, predicted_crop_label.lower())
+    predicted_label = next((c["label"] for c in SUPPORTED_CROPS if c["id"] == predicted_crop_ui), predicted_crop_label)
+    
+    st.markdown(
+        f"""
+        <div style="background:#FFF3CD; border-left:4px solid #C77D22; padding:1rem 1.2rem; margin:1rem 0; border-radius:0.4rem;">
+            <strong style="color:#B3261E;">⚠️ Crop Mismatch Detected</strong><br>
+            <span style="color:var(--text);">
+                The image you uploaded appears to be <strong>{predicted_label}</strong>, 
+                but you selected <strong>{crop_label}</strong>. 
+                The disease prediction may be inaccurate. Please re-upload with the correct crop selected.
+            </span>
+        </div>
+        """,
+        unsafe_allow_html=True,
+    )
+
+
 # ============================================================== UNCERTAIN
 if result.get("uncertain"):
     eyebrow("Step 4 · Diagnosis result")

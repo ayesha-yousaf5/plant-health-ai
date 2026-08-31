@@ -109,6 +109,51 @@ def _load_model():
     print(f"Disease model loaded: {n_classes} classes, device={_device}")
 
 
+
+
+def check_crop_match(image: Image.Image, selected_crop: str) -> dict:
+    """Check if the image matches the selected crop.
+    
+    Returns:
+        dict with:
+        - matches: bool - whether image appears to match selected crop
+        - predicted_crop: str - what crop the model thinks this is
+        - confidence: float - confidence in the crop prediction
+    """
+    _load_model()
+    
+    # Apply transforms
+    tensor = _transform(image.convert("RGB")).unsqueeze(0).to(_device)
+    
+    # Forward pass
+    with torch.no_grad():
+        logits = _model(tensor)
+        probs = torch.softmax(logits, dim=1)[0]
+    
+    # Find best match across ALL classes
+    best_idx = int(probs.argmax())
+    best_label = _idx_to_class[best_idx]
+    best_confidence = float(probs[best_idx])
+    
+    # Extract crop from best match
+    if '|' in best_label:
+        predicted_crop = best_label.split('|')[0]
+    else:
+        predicted_crop = best_label
+    
+    # Map back to UI format
+    selected_crop_model = CROP_NAME_MAP.get(selected_crop.lower(), selected_crop.title())
+    
+    # Check if they match
+    matches = (predicted_crop == selected_crop_model)
+    
+    return {
+        "matches": matches,
+        "predicted_crop": predicted_crop,
+        "selected_crop": selected_crop_model,
+        "confidence": best_confidence
+    }
+
 def predict(image: Image.Image, crop: str) -> tuple[str, float]:
     """Predict disease from a leaf image.
 
@@ -129,10 +174,28 @@ def predict(image: Image.Image, crop: str) -> tuple[str, float]:
         logits = _model(tensor)
         probs = torch.softmax(logits, dim=1)[0]
 
-    # Get prediction
-    idx = int(probs.argmax())
-    full_label = _idx_to_class[idx]  # e.g., "Tomato|Early Blight"
-    confidence = float(probs[idx])
+    # Map crop name to model format
+    crop_model_name = CROP_NAME_MAP.get(crop.lower(), crop.title())
+    
+    # Filter probabilities to only include classes for the selected crop
+    crop_indices = []
+    for idx, full_label in _idx_to_class.items():
+        if '|' in full_label:
+            label_crop = full_label.split('|')[0]
+            if label_crop == crop_model_name:
+                crop_indices.append(idx)
+    
+    # If no classes found for this crop, fall back to all classes
+    if not crop_indices:
+        idx = int(probs.argmax())
+        full_label = _idx_to_class[idx]
+        confidence = float(probs[idx])
+    else:
+        # Get probabilities only for this crop's classes
+        crop_probs = {idx: float(probs[idx]) for idx in crop_indices}
+        best_idx = max(crop_probs, key=crop_probs.get)
+        full_label = _idx_to_class[best_idx]
+        confidence = crop_probs[best_idx]
 
     # Extract disease name (after the |)
     if "|" in full_label:

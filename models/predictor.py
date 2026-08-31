@@ -30,6 +30,9 @@ def run_diagnosis(image, crop: str) -> dict:
     Returns:
         dict matching the standard result schema described above.
     """
+    # First check if the image matches the selected crop
+    crop_check = disease_model.check_crop_match(image, crop)
+    
     disease, disease_confidence = disease_model.predict(image, crop)
     uncertain = disease_confidence < UNCERTAINTY_THRESHOLD
 
@@ -43,6 +46,8 @@ def run_diagnosis(image, crop: str) -> dict:
             "severity": None,
             "severity_confidence": None,
             "uncertain": True,
+            "crop_mismatch": not crop_check["matches"],
+            "predicted_crop": crop_check["predicted_crop"],
         }
 
     severity, severity_confidence = severity_model.predict(image, disease)
@@ -54,4 +59,6 @@ def run_diagnosis(image, crop: str) -> dict:
         "severity": severity,
         "severity_confidence": severity_confidence,
         "uncertain": False,
+        "crop_mismatch": not crop_check["matches"],
+        "predicted_crop": crop_check["predicted_crop"],
     }
