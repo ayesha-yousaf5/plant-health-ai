@@ -2038,15 +2038,16 @@ def match_urdu_to_knowledge(urdu_text):
     Returns (crop, disease_name) from DISEASE_KNOWLEDGE, or
     pest info dict from PEST_KNOWLEDGE, or None.
     """
-    for urdu_term, (crop, disease) in URDU_DISEASE_MAP.items():
-        if urdu_term in urdu_text:
-            return {"type": "disease", "crop": crop, "disease": disease}
-
+    # Check pests first - they're more specific than disease mappings
     for key, info in PEST_KNOWLEDGE.items():
         if info["urdu_name"] in urdu_text:
             return {"type": "pest", "pest_info": info}
         if key in urdu_text.lower():
             return {"type": "pest", "pest_info": info}
+
+    for urdu_term, (crop, disease) in URDU_DISEASE_MAP.items():
+        if urdu_term in urdu_text:
+            return {"type": "disease", "crop": crop, "disease": disease}
 
     return None
 
