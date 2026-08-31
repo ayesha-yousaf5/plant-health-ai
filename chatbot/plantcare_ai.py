@@ -30,6 +30,13 @@ FOLLOW_UP_WORDS = [
     "the disease", "the plant", "the crop"
 ]
 
+URDU_RANGE = "؀-ۿ"
+
+def _is_urdu(text: str) -> bool:
+    """Return True if the text contains Urdu/Arabic script characters."""
+    import re
+    return bool(re.search(f"[{URDU_RANGE}]", text))
+
 
 def _get_api_key():
     """Get GROQ_API_KEY from env or Streamlit secrets."""
@@ -88,6 +95,13 @@ def _initialize():
 # =========================================================
 system_message = """You are Kisan Dost, a practical plant health assistant for farmers.
 
+LANGUAGE RULE (CRITICAL):
+- You MUST respond in the SAME LANGUAGE the farmer uses.
+- If the farmer writes in Urdu, you MUST respond entirely in Urdu script. Do not mix English words.
+- If the farmer writes in English, respond in English.
+- Urdu responses must use proper Urdu script (not Roman Urdu). Use everyday Urdu that a farmer would understand.
+- Disease names and product names can stay in their original form if there is no common Urdu equivalent, but all explanations must be in Urdu.
+
 Core behavior:
 - Give SPECIFIC advice about the exact disease the farmer is asking about. Never give generic filler.
 - Use simple, everyday language. Avoid jargon unless you explain it.
@@ -106,7 +120,7 @@ What to avoid:
 - Do not repeat the same generic advice for different diseases. Each disease has unique treatments, causes, and symptoms. Use them.
 - Do not say "consult an expert" as the only advice. Give actionable guidance first, then mention consulting if needed.
 - Do not invent disease names or treatments not in the provided knowledge.
-- Do not answer non-agriculture questions. Politely redirect: "I'm Kisan Dost, your plant health assistant. I can help with crop diseases, treatments, and prevention."
+- Do not answer non-agriculture questions. Politely redirect in the farmer's language.
 
 Conversation memory:
 - Remember the disease being discussed. If the user says "it", "this disease", or "its treatment", refer to the current disease.
@@ -270,6 +284,8 @@ def _format_knowledge_base_answer(disease_info, user_question):
 def generate_answer(user_question, retrieved_results):
     """Generate answer using Groq API with knowledge base."""
 
+    urdu_mode = _is_urdu(user_question)
+
     resolved_question = user_question
 
     if conversation_context["disease"]:
@@ -295,7 +311,15 @@ def generate_answer(user_question, retrieved_results):
     # Low-confidence dataset retrieval — fall back to knowledge base directly
     if not retrieved_results or retrieved_results[0]["score"] < 0.2:
         if disease_info:
+            if urdu_mode:
+                kb_answer = _format_knowledge_base_answer(disease_info, user_question)
+                return _translate_to_urdu(kb_answer)
             return _format_knowledge_base_answer(disease_info, user_question)
+        if urdu_mode:
+            return _translate_to_urdu(
+                "I don't have enough information to answer this accurately. "
+                "Try asking about symptoms, treatments, or prevention for your crop's disease."
+            )
         return (
             "I don't have enough information to answer this accurately. "
             "Try asking about symptoms, treatments, or prevention for your crop's disease."
@@ -319,6 +343,14 @@ def generate_answer(user_question, retrieved_results):
             f"Tailor your advice to this severity level."
         )
 
+    lang_instruction = ""
+    if urdu_mode:
+        lang_instruction = (
+            "\nIMPORTANT: The farmer is speaking Urdu. "
+            "You MUST write your entire response in Urdu script. "
+            "Do not use English. Do not mix languages.\n"
+        )
+
     user_prompt = f"""Farmer's question: {resolved_question}
 {severity_note}
 
@@ -329,7 +361,7 @@ Retrieved from plant disease dataset:
 Answer the farmer's question using the information above.
 Prioritize the DISEASE KNOWLEDGE section for specific treatments, dosages, and prevention steps.
 Be specific — include product names, dosages, and timing when available.
-"""
+{lang_instruction}"""
 
     response = client.chat.completions.create(
         model="openai/gpt-oss-20b",
@@ -340,6 +372,25 @@ Be specific — include product names, dosages, and timing when available.
         temperature=0.3
     )
 
+    return response.choices[0].message.content
+
+
+def _translate_to_urdu(english_text: str) -> str:
+    """Use Groq to translate an English answer into Urdu."""
+    response = client.chat.completions.create(
+        model="openai/gpt-oss-20b",
+        messages=[
+            {"role": "system", "content": (
+                "You are a translator. Convert the following English text into "
+                "natural Urdu that a Pakistani farmer would understand. "
+                "Use Urdu script. Keep disease names and product names as-is "
+                "if there is no common Urdu equivalent. "
+                "Do not add explanations — just return the Urdu translation."
+            )},
+            {"role": "user", "content": english_text}
+        ],
+        temperature=0.3
+    )
     return response.choices[0].message.content
 
 # =========================================================
