@@ -2,17 +2,19 @@
 Voice system for Kisan Dost — Urdu speech input and output.
 """
 
+import asyncio
 import json
-import streamlit as st
-import streamlit.components.v1 as components
 import os
 import re
 import tempfile
 
+import streamlit as st
+import streamlit.components.v1 as components
 
-def _check_gtts():
+
+def _check_edge_tts():
     try:
-        from gtts import gTTS
+        import edge_tts  # noqa: F401
         return True
     except ImportError:
         return False
@@ -32,12 +34,15 @@ def _strip_markdown(text: str) -> str:
     return text.strip()
 
 
-def text_to_speech_urdu(text: str) -> bytes | None:
-    """Convert text to Urdu speech audio using gTTS.
+URDU_VOICE = "ur-PK-UzmaNeural"
 
-    Returns audio bytes or None if gTTS is not available.
+
+def text_to_speech_urdu(text: str) -> bytes | None:
+    """Convert text to Urdu speech audio using Edge TTS (Microsoft neural voice).
+
+    Returns audio bytes (MP3) or None on failure.
     """
-    if not _check_gtts():
+    if not _check_edge_tts():
         return None
 
     clean_text = _strip_markdown(text)
@@ -45,18 +50,30 @@ def text_to_speech_urdu(text: str) -> bytes | None:
         return None
 
     try:
-        from gtts import gTTS
+        import edge_tts
 
-        tts = gTTS(text=clean_text, lang='ur', slow=False)
+        async def _synthesize():
+            communicate = edge_tts.Communicate(clean_text, URDU_VOICE)
+            with tempfile.NamedTemporaryFile(delete=False, suffix='.mp3') as fp:
+                tmp_path = fp.name
+            await communicate.save(tmp_path)
+            with open(tmp_path, 'rb') as f:
+                audio = f.read()
+            os.unlink(tmp_path)
+            return audio
 
-        with tempfile.NamedTemporaryFile(delete=False, suffix='.mp3') as fp:
-            tts.save(fp.name)
-            fp_path = fp.name
+        try:
+            loop = asyncio.get_running_loop()
+        except RuntimeError:
+            loop = None
 
-        with open(fp_path, 'rb') as f:
-            audio_bytes = f.read()
+        if loop and loop.is_running():
+            import concurrent.futures
+            with concurrent.futures.ThreadPoolExecutor() as pool:
+                audio_bytes = pool.submit(asyncio.run, _synthesize()).result()
+        else:
+            audio_bytes = asyncio.run(_synthesize())
 
-        os.unlink(fp_path)
         return audio_bytes
 
     except Exception:
