@@ -1,5 +1,5 @@
 """
-Unified sidebar — navigation + Krishi Mitra chatbot in one clean panel.
+Unified sidebar — navigation + Kisan Dost chatbot in one clean panel.
 """
 
 import streamlit as st
@@ -14,7 +14,7 @@ def _crop_label(crop_id):
 
 
 def render_sidebar(active: str = ""):
-    """Renders the unified sidebar with nav + Krishi Mitra chatbot."""
+    """Renders the unified sidebar with nav + Kisan Dost chatbot."""
 
     with st.sidebar:
         # ── Brand ──

@@ -88,7 +88,7 @@ with right:
                 </div>
             </div>
             <div class="divider-line" style="margin:1.2rem 0;"></div>
-            <div class="eyebrow">Krishi Mitra</div>
+            <div class="eyebrow">Kisan Dost</div>
             <p style="margin-top:0.4rem; color:var(--muted); font-size:0.92rem;">
                 "Remove affected leaves, apply neem oil spray, and improve airflow
                 — I'll guide you through treatment options based on severity."
@@ -108,7 +108,7 @@ steps = [
     ("01", "Select your crop", "Choose from the supported crop list so the model knows what it's looking at."),
     ("02", "Upload or capture a leaf", "Take a clear photo of the affected leaf, or upload one from your gallery."),
     ("03", "Get disease & severity", "The model returns a diagnosis, a confidence score, and a Mild / Moderate / Severe rating."),
-    ("04", "Ask Krishi Mitra", "Get treatment advice, prevention tips, and organic remedies from your farming assistant."),
+    ("04", "Ask Kisan Dost", "Get treatment advice, prevention tips, and organic remedies from your farming assistant."),
 ]
 
 cols = st.columns(4, gap="medium")

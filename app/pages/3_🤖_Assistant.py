@@ -21,7 +21,7 @@ except Exception as e:
     chatbot_available = False
     chatbot_error = str(e)
 
-st.set_page_config(page_title="Krishi Mitra · Plant Health AI", page_icon="🌱", layout="wide")
+st.set_page_config(page_title="Kisan Dost · Plant Health AI", page_icon="🌱", layout="wide")
 
 init_state()
 inject_theme()
@@ -39,11 +39,11 @@ st.markdown(
                     font-size:2rem;margin-bottom:0.8rem;">
             🌱
         </div>
-        <h1 style="margin:0;font-size:2.2rem;">Krishi Mitra</h1>
+        <h1 style="margin:0;font-size:2.2rem;">Kisan Dost</h1>
         <p style="font-family:'IBM Plex Mono',monospace;font-size:0.78rem;
                   letter-spacing:0.1em;color:var(--muted);text-transform:uppercase;
                   margin-top:0.3rem;">
-            कृषि मित्र · Your Farming Companion
+            کسان دوست · Your Farming Companion
         </p>
     </div>
     """,
@@ -123,7 +123,7 @@ if "voice_output_enabled" not in st.session_state:
 voice_cols = st.columns([5, 1])
 with voice_cols[0]:
     st.markdown(
-        '<div style="font-size:0.85rem; color:var(--muted);">🔊 Enable Hindi voice output for responses</div>',
+        '<div style="font-size:0.85rem; color:var(--muted);">🔊 Enable Urdu voice output for responses</div>',
         unsafe_allow_html=True,
     )
 with voice_cols[1]:
@@ -132,27 +132,27 @@ with voice_cols[1]:
 
 from app.components.voice import render_voice_input_button
 render_voice_input_button(
-    placeholder="Ask Krishi Mitra about your crop...",
+    placeholder="Ask Kisan Dost about your crop...",
     key="assistant_voice",
     auto_submit=True,
 )
 
-prompt = st.chat_input("Ask Krishi Mitra about your crop...")
+prompt = st.chat_input("Ask Kisan Dost about your crop...")
 if prompt:
     st.session_state["chat_history"].append({"role": "user", "content": prompt})
     with st.chat_message("user"):
         st.markdown(prompt)
 
     with st.chat_message("assistant", avatar="🌱"):
-        with st.spinner("Krishi Mitra is thinking..."):
+        with st.spinner("Kisan Dost is thinking..."):
             reply = ask(prompt, context, st.session_state["chat_history"])
         st.markdown(reply)
         
-        # Voice output in Hindi
+        # Voice output in Urdu
         if st.session_state.get("voice_output_enabled", False):
             try:
-                from app.components.voice import text_to_speech_hindi
-                audio_bytes = text_to_speech_hindi(reply)
+                from app.components.voice import text_to_speech_urdu
+                audio_bytes = text_to_speech_urdu(reply)
                 if audio_bytes:
                     st.audio(audio_bytes, format='audio/mp3')
             except Exception:

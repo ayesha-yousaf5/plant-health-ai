@@ -1,12 +1,12 @@
 """
-Krishi Mitra (कृषि मित्र) — the farming assistant chatbot widget.
+Kisan Dost (کسان دوست) — the farming assistant chatbot widget.
 Lives in the sidebar as the primary conversational interface.
 """
 
 import streamlit as st
 
-CHATBOT_NAME = "Krishi Mitra"
-CHATBOT_HINDI = "कृषि मित्र"
+CHATBOT_NAME = "Kisan Dost"
+CHATBOT_URDU = "کسان دوست"
 CHATBOT_TAGLINE = "Your farming companion"
 
 
@@ -20,7 +20,7 @@ def _get_chatbot():
 
 
 def render_sidebar_chatbot():
-    """Render Krishi Mitra in the sidebar."""
+    """Render Kisan Dost in the sidebar."""
 
     if "sidebar_chat_history" not in st.session_state:
         st.session_state.sidebar_chat_history = []
@@ -36,7 +36,7 @@ def render_sidebar_chatbot():
             unsafe_allow_html=True,
         )
 
-        # ── Krishi Mitra header ──
+        # ── Kisan Dost header ──
         st.markdown(
             f"""
             <div style="display:flex;align-items:center;gap:0.55rem;margin-bottom:0.15rem;">
@@ -54,7 +54,7 @@ def render_sidebar_chatbot():
                     <div style="font-family:'IBM Plex Mono',monospace;font-size:0.58rem;
                                 letter-spacing:0.08em;color:rgba(255,255,255,0.45);
                                 text-transform:uppercase;">
-                        {CHATBOT_HINDI} · {CHATBOT_TAGLINE}
+                        {CHATBOT_URDU} · {CHATBOT_TAGLINE}
                     </div>
                 </div>
             </div>
@@ -124,7 +124,7 @@ def render_sidebar_chatbot():
         # ── Input form ──
         with st.form(key="sidebar_chat_form", clear_on_submit=True):
             user_input = st.text_input(
-                "Ask Krishi Mitra:",
+                "Ask Kisan Dost:",
                 key="sidebar_chat_input",
                 placeholder="Type your question...",
                 label_visibility="collapsed",
@@ -160,8 +160,8 @@ def render_sidebar_chatbot():
             # Store voice audio for next render cycle (before rerun)
             if st.session_state.get("voice_output_enabled", False):
                 try:
-                    from app.components.voice import text_to_speech_hindi
-                    audio_bytes = text_to_speech_hindi(reply)
+                    from app.components.voice import text_to_speech_urdu
+                    audio_bytes = text_to_speech_urdu(reply)
                     if audio_bytes:
                         st.session_state["pending_voice_bytes"] = audio_bytes
                 except Exception:
@@ -181,7 +181,7 @@ def render_sidebar_chatbot():
         voice_col1, voice_col2 = st.columns([2, 1])
         with voice_col1:
             st.markdown(
-                '<div style="font-size:0.72rem; color:rgba(255,255,255,0.5);">🔊 Hindi voice</div>',
+                '<div style="font-size:0.72rem; color:rgba(255,255,255,0.5);">🔊 Urdu voice</div>',
                 unsafe_allow_html=True,
             )
         with voice_col2:

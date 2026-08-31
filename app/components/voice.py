@@ -1,5 +1,5 @@
 """
-Voice system for Krishi Mitra — Hindi speech input and output.
+Voice system for Kisan Dost — Urdu speech input and output.
 """
 
 import json
@@ -32,8 +32,8 @@ def _strip_markdown(text: str) -> str:
     return text.strip()
 
 
-def text_to_speech_hindi(text: str) -> bytes | None:
-    """Convert text to Hindi speech audio using gTTS.
+def text_to_speech_urdu(text: str) -> bytes | None:
+    """Convert text to Urdu speech audio using gTTS.
 
     Returns audio bytes or None if gTTS is not available.
     """
@@ -47,7 +47,7 @@ def text_to_speech_hindi(text: str) -> bytes | None:
     try:
         from gtts import gTTS
 
-        tts = gTTS(text=clean_text, lang='hi', slow=False)
+        tts = gTTS(text=clean_text, lang='ur', slow=False)
 
         with tempfile.NamedTemporaryFile(delete=False, suffix='.mp3') as fp:
             tts.save(fp.name)
@@ -64,17 +64,17 @@ def text_to_speech_hindi(text: str) -> bytes | None:
 
 
 def speak_if_enabled(text: str):
-    """Render Hindi audio if voice output is enabled. Safe to call before rerun."""
+    """Render Urdu audio if voice output is enabled. Safe to call before rerun."""
     if not st.session_state.get("voice_output_enabled", False):
         return
-    audio_bytes = text_to_speech_hindi(text)
+    audio_bytes = text_to_speech_urdu(text)
     if audio_bytes:
         st.audio(audio_bytes, format='audio/mp3')
 
 
 def render_voice_input_button(placeholder: str, key: str = "voice_input",
                                auto_submit: bool = True):
-    """Render a mic button that captures Hindi speech and fills a text input.
+    """Render a mic button that captures Urdu speech and fills a text input.
 
     Uses ``streamlit.components.v1.html()`` so the ``<script>`` actually
     executes (``st.markdown`` injects via innerHTML which skips scripts).
@@ -117,7 +117,7 @@ def render_voice_input_button(placeholder: str, key: str = "voice_input",
     <body>
     <div style="display:inline-flex;align-items:center;gap:0.5rem;">
         <button onclick="toggleVoice()" id="voiceBtn_{key}"
-                title="Click to speak in Hindi">
+                title="Click to speak in Urdu">
             🎤
         </button>
         <span id="voiceStatus_{key}"
@@ -142,7 +142,7 @@ def render_voice_input_button(placeholder: str, key: str = "voice_input",
             var btn = document.getElementById('voiceBtn_{key}');
             var status = document.getElementById('voiceStatus_{key}');
             var recognition = new SR();
-            recognition.lang = 'hi-IN';
+            recognition.lang = 'ur-PK';
             recognition.continuous = false;
             recognition.interimResults = false;
             recognition.maxAlternatives = 1;
