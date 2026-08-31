@@ -5,6 +5,7 @@ page renders results, badges, and gauges identically.
 """
 
 import streamlit as st
+import uuid
 
 SEVERITY_BADGE_CLASS = {
     "Mild": "badge-mild",
@@ -66,6 +67,7 @@ def leaf_gauge(percent: float, label: str, color: str = "#2D6A4F", size: int = 1
     """
     percent = max(0, min(100, percent))
     fill_y = 100 - percent  # svg y grows downward; clip rect starts here
+    uid = uuid.uuid4().hex[:8]
 
     leaf_path = (
         "M50 4 C 20 10, 6 40, 10 66 C 13 86, 30 96, 50 96 "
@@ -75,17 +77,17 @@ def leaf_gauge(percent: float, label: str, color: str = "#2D6A4F", size: int = 1
     return f"""
     <svg width="{size}" height="{size}" viewBox="0 0 100 100" xmlns="http://www.w3.org/2000/svg">
       <defs>
-        <clipPath id="clip-{label}">
+        <clipPath id="clip-{uid}">
           <path d="{leaf_path}" />
         </clipPath>
-        <linearGradient id="grad-{label}" x1="0" y1="1" x2="0" y2="0">
+        <linearGradient id="grad-{uid}" x1="0" y1="1" x2="0" y2="0">
           <stop offset="0%" stop-color="{color}" stop-opacity="0.95"/>
           <stop offset="100%" stop-color="{color}" stop-opacity="0.55"/>
         </linearGradient>
       </defs>
       <path d="{leaf_path}" fill="#EFEEE6" stroke="#DDE3DA" stroke-width="1.5"/>
-      <g clip-path="url(#clip-{label})">
-        <rect x="0" y="{fill_y}" width="100" height="{percent}" fill="url(#grad-{label})">
+      <g clip-path="url(#clip-{uid})">
+        <rect x="0" y="{fill_y}" width="100" height="{percent}" fill="url(#grad-{uid})">
           <animate attributeName="y" from="100" to="{fill_y}" dur="0.7s" fill="freeze" />
         </rect>
       </g>
