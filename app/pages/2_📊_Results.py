@@ -11,6 +11,7 @@ from app.styles.theme import inject_theme
 from app.components.nav import render_sidebar
 from app.components.state import init_state, reset_diagnosis
 from app.components.ui import eyebrow, divider, severity_badge, gauge_card
+from app.components.sidebar_chatbot import render_sidebar_chatbot
 from data.crops import SUPPORTED_CROPS
 
 st.set_page_config(page_title="Results · Plant Health AI", page_icon="📊", layout="wide")
@@ -18,6 +19,7 @@ st.set_page_config(page_title="Results · Plant Health AI", page_icon="📊", la
 init_state()
 inject_theme()
 render_sidebar(active="results")
+render_sidebar_chatbot()
 
 result = st.session_state.get("diagnosis_result")
 image = st.session_state.get("uploaded_image")

@@ -13,6 +13,7 @@ from app.styles.theme import inject_theme
 from app.components.nav import render_sidebar
 from app.components.state import init_state, reset_diagnosis
 from app.components.ui import eyebrow, divider
+from app.components.sidebar_chatbot import render_sidebar_chatbot
 from data.crops import SUPPORTED_CROPS
 from models.predictor import run_diagnosis
 
@@ -21,6 +22,7 @@ st.set_page_config(page_title="Diagnosis · Plant Health AI", page_icon="🔬", 
 init_state()
 inject_theme()
 render_sidebar(active="diagnosis")
+render_sidebar_chatbot()
 
 eyebrow("Step 1–3")
 st.markdown("## Run a diagnosis")
