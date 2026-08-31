@@ -7,7 +7,10 @@ to answer user questions about plant diseases, symptoms, prevention, and treatme
 
 import os
 from pathlib import Path
-from chatbot.disease_knowledge import get_disease_info, get_treatment_info, get_crop_diseases
+from chatbot.disease_knowledge import (
+    get_disease_info, get_treatment_info, get_crop_diseases,
+    CROP_SEASONAL_GUIDE, HOMEMADE_REMEDIES, FERTILIZER_GUIDE, PESTICIDE_GUIDE
+)
 
 # =========================================================
 # LAZY INITIALIZATION
@@ -93,7 +96,7 @@ def _initialize():
 # =========================================================
 # SYSTEM INSTRUCTIONS
 # =========================================================
-system_message = """You are Kisan Dost, a practical plant health assistant for farmers.
+system_message = """You are Kisan Dost, a practical plant health assistant for Pakistani farmers.
 
 LANGUAGE RULE (CRITICAL):
 - You MUST respond in the SAME LANGUAGE the farmer uses.
@@ -107,12 +110,16 @@ Core behavior:
 - Use simple, everyday language. Avoid jargon unless you explain it.
 - Be direct: lead with the most actionable information first.
 - When the knowledge base provides treatment dosages or product names, ALWAYS include them. Farmers need specifics.
+- When SEASONAL GUIDE is provided, mention the relevant season, weather concerns, and prevention tips.
+- When HOMEMADE REMEDIES are provided, share the recipe and application method — farmers appreciate low-cost solutions.
+- When RECOMMENDED PRODUCTS are listed, mention the brand name, dose, and pre-harvest interval (PHI).
 - Use short bullet points for readability.
 - Keep answers concise but complete: 40-80 words for simple questions, up to 120 words for treatment or prevention questions.
 
 Answer structure:
 - Start with a one-line direct answer to the question.
 - Then add 2-4 bullet points with specifics (dosages, timing, products).
+- Include a homemade remedy if relevant.
 - End with one practical tip if relevant.
 - Use **bold** for headings. Leave blank lines between sections.
 
@@ -181,6 +188,7 @@ def _build_knowledge_context(disease_info, user_question):
     specific, varied answers instead of generic ones.
     """
     parts = []
+    crop_id = disease_info.get("crop", "")
     parts.append(f"\n=== DISEASE KNOWLEDGE FOR: {disease_info['disease'].upper()} ===")
     parts.append(f"Pathogen: {disease_info['pathogen']}")
 
@@ -208,6 +216,37 @@ def _build_knowledge_context(disease_info, user_question):
         parts.append(f"\nSeverity levels:")
         for level, desc in disease_info['severity_indicators'].items():
             parts.append(f"- {level.capitalize()}: {desc}")
+
+    # Add seasonal guidance for the crop
+    if crop_id in CROP_SEASONAL_GUIDE:
+        guide = CROP_SEASONAL_GUIDE[crop_id]
+        parts.append(f"\n=== SEASONAL GUIDE FOR {crop_id.upper()} ===")
+        parts.append(f"Fertilizer schedule: {guide.get('fertilizer_schedule', 'N/A')}")
+        parts.append(f"Common mistakes: {guide.get('common_mistakes', 'N/A')}")
+        for season, info in guide.get("seasons", {}).items():
+            parts.append(f"\n{season.capitalize()} season:")
+            parts.append(f"  Planting: {info.get('planting', 'N/A')}")
+            parts.append(f"  Disease risks: {', '.join(info.get('disease_risks', []))}")
+            parts.append(f"  Weather concerns: {info.get('weather_concerns', 'N/A')}")
+            parts.append(f"  Prevention: {info.get('prevention_tips', 'N/A')}")
+
+    # Add relevant homemade remedies
+    parts.append(f"\n=== HOMEMADE REMEDIES ===")
+    for remedy_name, remedy in HOMEMADE_REMEDIES.items():
+        if crop_id in remedy.get("crops", []) or "all vegetables" in remedy.get("crops", []):
+            parts.append(f"\n{remedy_name.replace('_', ' ').title()}:")
+            parts.append(f"  Recipe: {remedy['recipe']}")
+            parts.append(f"  Uses: {', '.join(remedy['uses'])}")
+            parts.append(f"  Application: {remedy['application']}")
+
+    # Add relevant pesticide/insecticide recommendations
+    parts.append(f"\n=== RECOMMENDED PRODUCTS ===")
+    disease_lower = disease_info['disease'].lower()
+    for category, products in PESTICIDE_GUIDE.get("fungicides", {}).items():
+        for product in products:
+            targets = [t.lower() for t in product.get("target", [])]
+            if any(disease_lower in t or t in disease_lower for t in targets) or "all fungal" in " ".join(targets):
+                parts.append(f"- {product['name']} ({product['brand']}): {product['dose']}, PHI: {product['phi']}")
 
     parts.append(f"=== END KNOWLEDGE ===\n")
     return "\n".join(parts)

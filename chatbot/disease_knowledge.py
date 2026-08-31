@@ -1545,6 +1545,206 @@ DISEASE_KNOWLEDGE = {
     }
 }
 
+# =========================================================
+# CROP-SPECIFIC SEASONAL GUIDANCE FOR PAKISTAN
+# =========================================================
+CROP_SEASONAL_GUIDE = {
+    "tomato": {
+        "seasons": {
+            "spring": {
+                "planting": "February-March",
+                "harvest": "May-July",
+                "disease_risks": ["Early Blight", "Late Blight", "Leaf Mold"],
+                "weather_concerns": "Spring rains increase fungal disease risk. Ensure drainage.",
+                "prevention_tips": "Apply preventive fungicide before monsoon. Space plants 60cm apart."
+            },
+            "autumn": {
+                "planting": "August-September",
+                "harvest": "November-January",
+                "disease_risks": ["Late Blight", "Mosaic Virus", "Septoria Leaf Spot"],
+                "weather_concerns": "Cool nights with warm days create condensation. Morning fog increases humidity.",
+                "prevention_tips": "Use resistant varieties. Avoid overhead irrigation in evening."
+            }
+        },
+        "fertilizer_schedule": "Apply NPK 13-40-13 at transplanting (50kg/acre). Top dress with urea (30kg/acre) at flowering. Add potassium sulfate (25kg/acre) for fruit quality.",
+        "common_mistakes": "Over-watering, planting too close, ignoring lower leaf symptoms"
+    },
+    "potato": {
+        "seasons": {
+            "winter": {
+                "planting": "October-November",
+                "harvest": "January-March",
+                "disease_risks": ["Late Blight", "Early Blight"],
+                "weather_concerns": "Fog and dew in December-January create ideal blight conditions.",
+                "prevention_tips": "Use certified seed tubers. Apply Ridomil preventively when humidity >90%."
+            }
+        },
+        "fertilizer_schedule": "Apply DAP (100kg/acre) and urea (50kg/acre) at planting. Earthing up at 30 days. Add potash (40kg/acre) for tuber size.",
+        "common_mistakes": "Using infected seed potatoes, delayed blight spray, waterlogging"
+    },
+    "rice": {
+        "seasons": {
+            "kharif": {
+                "planting": "June-July",
+                "harvest": "October-November",
+                "disease_risks": ["Rice Blast", "Bacterial Leaf Blight", "Brown Spot"],
+                "weather_concerns": "High humidity and temperature (30-35°C) during monsoon. Excessive nitrogen increases blast risk.",
+                "prevention_tips": "Use resistant varieties (Basmati 385, Super Basmati). Avoid excess urea. Ensure field drainage."
+            }
+        },
+        "fertilizer_schedule": "Apply DAP (80kg/acre) at transplanting. Split urea application: 40kg at transplanting, 40kg at tillering, 30kg at panicle initiation. Add zinc sulfate (10kg/acre) if deficient.",
+        "common_mistakes": "Excess nitrogen, stagnant water, late planting"
+    },
+    "maize": {
+        "seasons": {
+            "kharif": {
+                "planting": "April-May (spring), June-July (monsoon)",
+                "harvest": "August-September (spring), October-November (monsoon)",
+                "disease_risks": ["Common Rust", "Gray Leaf Spot", "Northern Leaf Blight"],
+                "weather_concerns": "Rust spreads in warm humid weather (25-30°C). Leaf spots thrive in rain.",
+                "prevention_tips": "Plant resistant hybrids. Apply fungicide at tasseling if rust appears."
+            }
+        },
+        "fertilizer_schedule": "Apply NPK 18-46-0 (50kg/acre) at planting. Top dress with urea (60kg/acre) at knee-high stage. Split application for better uptake.",
+        "common_mistakes": "Late planting, excess nitrogen, ignoring rust symptoms"
+    },
+    "cotton": {
+        "seasons": {
+            "kharif": {
+                "planting": "April-May",
+                "harvest": "September-November",
+                "disease_risks": ["Leaf Curl Virus", "Bacterial Blight", "Boll Rot"],
+                "weather_concerns": "Whitefly spreads virus in hot dry weather. Monsoon humidity causes boll rot.",
+                "prevention_tips": "Use virus-resistant varieties. Control whitefly early with imidacloprid. Avoid late-season irrigation."
+            }
+        },
+        "fertilizer_schedule": "Apply DAP (80kg/acre) at planting. Top dress with urea (50kg/acre) at flowering. Add potash (30kg/acre) for boll development.",
+        "common_mistakes": "Late sowing, ignoring whitefly, excess irrigation during boll formation"
+    },
+    "wheat": {
+        "seasons": {
+            "rabi": {
+                "planting": "November-December",
+                "harvest": "April-May",
+                "disease_risks": ["Rust (leaf, stem, stripe)", "Powdery Mildew", "Septoria Glume Blotch"],
+                "weather_concerns": "Cool moist weather (15-22°C) favors rust. Late sowing increases disease risk.",
+                "prevention_tips": "Use resistant varieties (Punjab-11, Faisalabad-08). Apply fungicide at boot stage if rust appears."
+            }
+        },
+        "fertilizer_schedule": "Apply DAP (100kg/acre) at planting. Top dress with urea (75kg/acre) in two splits: at tillering and boot stage.",
+        "common_mistakes": "Late sowing, single urea application, ignoring early rust symptoms"
+    }
+}
+
+# =========================================================
+# HOMEMADE / ORGANIC REMEDIES WITH SPECIFIC RECIPES
+# =========================================================
+HOMEMADE_REMEDIES = {
+    "neem_oil_spray": {
+        "recipe": "Mix 5ml neem oil + 2ml liquid soap in 1 liter water",
+        "uses": ["Fungal diseases", "Insect control", "Preventive spray"],
+        "application": "Spray every 7-10 days in early morning or evening",
+        "crops": ["tomato", "potato", "rice", "vegetables"]
+    },
+    "baking_soda_spray": {
+        "recipe": "1 tbsp baking soda + 1 tsp liquid soap + 1 tsp vegetable oil in 4 liters water",
+        "uses": ["Powdery mildew", "Leaf spot", "Early blight"],
+        "application": "Spray every 7-14 days. Test on few leaves first.",
+        "crops": ["tomato", "potato", "grape", "apple"]
+    },
+    "garlic_chili_spray": {
+        "recipe": "Blend 100g garlic + 50g chili + 1 liter water. Strain. Dilute to 10 liters.",
+        "uses": ["Insect repellent", "Fungal diseases", "Virus vector control"],
+        "application": "Spray thoroughly on leaves, especially undersides. Repeat weekly.",
+        "crops": ["all vegetables", "cotton", "wheat"]
+    },
+    "milk_spray": {
+        "recipe": "Mix 1 part milk with 9 parts water",
+        "uses": ["Powdery mildew", "Virus diseases", "Boosts plant immunity"],
+        "application": "Spray every 10-14 days. Best as preventive.",
+        "crops": ["tomato", "potato", "pepper", "cucumber"]
+    },
+    "bordeaux_mixture": {
+        "recipe": "Dissolve 1kg copper sulfate in 10 liters water. In separate container, slake 1kg lime in 10 liters water. Mix both solutions slowly.",
+        "uses": ["Late blight", "Early blight", "Bacterial diseases", "Downy mildew"],
+        "application": "Apply preventively. Reapply after rain. Do not use on ripe fruit.",
+        "crops": ["tomato", "potato", "grape", "apple", "citrus"]
+    },
+    "buttermilk_spray": {
+        "recipe": "Mix 2 liters buttermilk in 10 liters water",
+        "uses": ["Powdery mildew", "Leaf spot", "Nutrient boost"],
+        "application": "Spray every 10 days. Good for organic farming.",
+        "crops": ["all vegetables", "wheat", "rice"]
+    },
+    "ash_and_lime_dust": {
+        "recipe": "Mix wood ash and slaked lime in 1:1 ratio",
+        "uses": ["Snail and slug control", "Fungal prevention", "Potassium boost"],
+        "application": "Dust around plant base. Apply in dry weather.",
+        "crops": ["all vegetables", "potato", "tomato"]
+    }
+}
+
+# =========================================================
+# FERTILIZER GUIDE FOR PAKISTANI CROPS
+# =========================================================
+FERTILIZER_GUIDE = {
+    "nitrogen_deficiency": {
+        "symptoms": "Yellowing of older leaves, stunted growth, pale green color",
+        "quick_fix": "Apply urea (30-50kg/acre) or ammonium sulfate. Foliar spray 2% urea solution.",
+        "crops_affected": ["wheat", "rice", "maize", "vegetables"]
+    },
+    "phosphorus_deficiency": {
+        "symptoms": "Purple or reddish leaves, poor root development, delayed maturity",
+        "quick_fix": "Apply DAP (50-100kg/acre) or single super phosphate. Band placement near roots.",
+        "crops_affected": ["wheat", "potato", "tomato", "maize"]
+    },
+    "potassium_deficiency": {
+        "symptoms": "Brown leaf margins, weak stems, poor fruit quality, lodging",
+        "quick_fix": "Apply potassium sulfate (30-50kg/acre) or muriate of potash. Foliar spray 1% KCl.",
+        "crops_affected": ["tomato", "potato", "fruit trees", "cotton"]
+    },
+    "zinc_deficiency": {
+        "symptoms": "Small leaves, interveinal chlorosis, rosette formation in rice",
+        "quick_fix": "Apply zinc sulfate (10-15kg/acre) or foliar spray 0.5% zinc sulfate solution.",
+        "crops_affected": ["rice", "maize", "wheat", "fruit trees"]
+    }
+}
+
+# =========================================================
+# PESTICIDE AND INSECTICIDE GUIDE
+# =========================================================
+PESTICIDE_GUIDE = {
+    "fungicides": {
+        "contact": [
+            {"name": "Mancozeb", "brand": "Dithane M-45", "dose": "2.5 g/L", "target": ["Early blight", "Late blight", "Leaf spot"], "phi": "7 days"},
+            {"name": "Chlorothalonil", "brand": "Daconil", "dose": "2 g/L", "target": ["Early blight", "Leaf mold", "Anthracnose"], "phi": "7 days"},
+            {"name": "Copper hydroxide", "brand": "Kocide", "dose": "2 g/L", "target": ["Bacterial blight", "Downy mildew"], "phi": "10 days"}
+        ],
+        "systemic": [
+            {"name": "Metalaxyl + Mancozeb", "brand": "Ridomil Gold", "dose": "2.5 g/L", "target": ["Late blight", "Downy mildew"], "phi": "14 days"},
+            {"name": "Carbendazim", "brand": "Bavistin", "dose": "1 g/L", "target": ["Powdery mildew", "Wilt", "Root rot"], "phi": "14 days"},
+            {"name": "Propiconazole", "brand": "Tilt", "dose": "1 ml/L", "target": ["Rust", "Powdery mildew", "Leaf spot"], "phi": "21 days"},
+            {"name": "Azoxystrobin", "brand": "Amistar", "dose": "0.5 ml/L", "target": ["All fungal diseases"], "phi": "14 days"}
+        ]
+    },
+    "insecticides": {
+        "for_sucking_pests": [
+            {"name": "Imidacloprid", "brand": "Confidor", "dose": "0.3 ml/L", "target": ["Whitefly", "Aphids", "Jassids"], "phi": "14 days"},
+            {"name": "Thiamethoxam", "brand": "Actara", "dose": "0.5 g/L", "target": ["Whitefly", "Thrips", "Aphids"], "phi": "14 days"},
+            {"name": "Acetamiprid", "brand": "Starke", "dose": "0.5 g/L", "target": ["Whitefly", "Aphids"], "phi": "7 days"}
+        ],
+        "for_chewing_pests": [
+            {"name": "Chlorantraniliprole", "brand": "Coragen", "dose": "0.3 ml/L", "target": ["Bollworm", "Armyworm", "Cutworm"], "phi": "7 days"},
+            {"name": "Emamectin benzoate", "brand": "Proclaim", "dose": "0.5 g/L", "target": ["Bollworm", "Leafroller", "Fruit borer"], "phi": "14 days"},
+            {"name": "Lambda-cyhalothrin", "brand": "Karate", "dose": "1 ml/L", "target": ["Bollworm", "Armyworm", "Beetle"], "phi": "14 days"}
+        ],
+        "for_mites": [
+            {"name": "Abamectin", "brand": "Vertimec", "dose": "1 ml/L", "target": ["Red mite", "Spider mite"], "phi": "14 days"},
+            {"name": "Spiromesifen", "brand": "Oberon", "dose": "1 ml/L", "target": ["Red mite", "White mite"], "phi": "21 days"}
+        ]
+    }
+}
+
 def get_disease_info(crop_id, disease_name):
     """Get detailed information about a specific disease."""
     key = f"{crop_id}_{disease_name.lower().replace(' ', '_').replace('(', '').replace(')', '')}"
