@@ -1,7 +1,8 @@
 """
-Voice system for Krishi Mitra — Hindi text-to-speech output.
+Voice system for Krishi Mitra — Hindi speech input and output.
 """
 
+import json
 import streamlit as st
 import os
 import re
@@ -68,3 +69,140 @@ def speak_if_enabled(text: str):
     audio_bytes = text_to_speech_hindi(text)
     if audio_bytes:
         st.audio(audio_bytes, format='audio/mp3')
+
+
+def render_voice_input_button(placeholder: str, key: str = "voice_input",
+                               auto_submit: bool = True):
+    """Render a mic button that captures Hindi speech and fills a text input.
+
+    Uses the browser's Web Speech API and bridges the transcript back to
+    Streamlit by setting the target input's value via the native setter
+    (bypasses React's controlled input wrapper).
+
+    Args:
+        placeholder: The placeholder text of the target Streamlit text input
+                     or chat_input element.
+        key: Unique suffix for DOM ids and JS function names.
+        auto_submit: If True, auto-submit the form / press Enter after
+                     transcription so the user doesn't have to click Send.
+    """
+    ph_json = json.dumps(placeholder)
+    auto_js = "true" if auto_submit else "false"
+
+    voice_html = f"""
+    <div style="display:inline-flex;align-items:center;gap:0.5rem;margin:0.3rem 0;">
+        <button onclick="toggleVoice_{key}()" id="voiceBtn_{key}"
+                style="background:linear-gradient(135deg,#2D6A4F,#74A57F);
+                       color:white;border:none;border-radius:50%;
+                       width:36px;height:36px;font-size:1rem;
+                       cursor:pointer;box-shadow:0 2px 6px rgba(45,106,79,0.3);
+                       transition:all 0.2s ease;line-height:1;"
+                title="Click to speak in Hindi">
+            🎤
+        </button>
+        <span id="voiceStatus_{key}"
+              style="font-size:0.72rem;color:rgba(255,255,255,0.5);">
+            Click to speak
+        </span>
+    </div>
+
+    <style>
+    @keyframes voicePulse_{key} {{
+        0%,100% {{ transform:scale(1); }}
+        50% {{ transform:scale(1.12); }}
+    }}
+    #voiceBtn_{key}.listening {{
+        background:linear-gradient(135deg,#B3261E,#dc3545) !important;
+        animation:voicePulse_{key} 1s infinite;
+    }}
+    </style>
+
+    <script>
+    (function() {{
+        var PH = {ph_json};
+        var AUTO = {auto_js};
+
+        window.toggleVoice_{key} = function() {{
+            var SR = window.SpeechRecognition || window.webkitSpeechRecognition;
+            if (!SR) {{
+                alert('Speech recognition not supported. Please use Chrome or Edge.');
+                return;
+            }}
+
+            var btn = document.getElementById('voiceBtn_{key}');
+            var status = document.getElementById('voiceStatus_{key}');
+            var recognition = new SR();
+            recognition.lang = 'hi-IN';
+            recognition.continuous = false;
+            recognition.interimResults = false;
+            recognition.maxAlternatives = 1;
+
+            recognition.onstart = function() {{
+                btn.classList.add('listening');
+                status.textContent = 'Listening...';
+                status.style.color = '#B3261E';
+            }};
+
+            recognition.onresult = function(event) {{
+                var transcript = event.results[0][0].transcript;
+                status.textContent = transcript;
+                status.style.color = '#2D6A4F';
+
+                var target = null;
+                var inputs = document.querySelectorAll('input[type="text"]');
+                for (var i = 0; i < inputs.length; i++) {{
+                    if (inputs[i].placeholder === PH) {{ target = inputs[i]; break; }}
+                }}
+                if (!target) {{
+                    var tas = document.querySelectorAll('textarea');
+                    for (var j = 0; j < tas.length; j++) {{
+                        if (tas[j].placeholder === PH) {{ target = tas[j]; break; }}
+                    }}
+                }}
+
+                if (target) {{
+                    var proto = target.tagName === 'TEXTAREA'
+                        ? window.HTMLTextAreaElement.prototype
+                        : window.HTMLInputElement.prototype;
+                    var setter = Object.getOwnPropertyDescriptor(proto, 'value').set;
+                    setter.call(target, transcript);
+                    target.dispatchEvent(new Event('input', {{ bubbles: true }}));
+                    target.dispatchEvent(new Event('change', {{ bubbles: true }}));
+
+                    if (AUTO) {{
+                        setTimeout(function() {{
+                            var form = target.closest('form');
+                            if (form) {{
+                                var sb = form.querySelector('button[type="submit"]');
+                                if (sb) {{ sb.click(); return; }}
+                            }}
+                            target.dispatchEvent(new KeyboardEvent('keydown', {{
+                                key:'Enter', code:'Enter', keyCode:13, bubbles:true
+                            }}));
+                        }}, 250);
+                    }}
+                }} else {{
+                    status.textContent = 'Input not found — type manually';
+                    status.style.color = '#C77D22';
+                }}
+
+                btn.classList.remove('listening');
+            }};
+
+            recognition.onerror = function(event) {{
+                status.textContent = 'Error: ' + event.error;
+                status.style.color = '#B3261E';
+                btn.classList.remove('listening');
+            }};
+
+            recognition.onend = function() {{
+                btn.classList.remove('listening');
+            }};
+
+            recognition.start();
+        }};
+    }})();
+    </script>
+    """
+
+    st.markdown(voice_html, unsafe_allow_html=True)

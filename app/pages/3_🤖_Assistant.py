@@ -130,6 +130,13 @@ with voice_cols[1]:
     toggle_val = st.toggle("Voice", key="voice_toggle_fullpage", label_visibility="collapsed")
     st.session_state.voice_output_enabled = toggle_val
 
+from app.components.voice import render_voice_input_button
+render_voice_input_button(
+    placeholder="Ask Krishi Mitra about your crop...",
+    key="assistant_voice",
+    auto_submit=True,
+)
+
 prompt = st.chat_input("Ask Krishi Mitra about your crop...")
 if prompt:
     st.session_state["chat_history"].append({"role": "user", "content": prompt})

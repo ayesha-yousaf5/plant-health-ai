@@ -138,6 +138,14 @@ def render_sidebar_chatbot():
                 st.session_state["pending_quick_ask"] = user_input
                 st.rerun()
 
+        # ── Voice input ──
+        from app.components.voice import render_voice_input_button
+        render_voice_input_button(
+            placeholder="Type your question...",
+            key="sidebar_voice",
+            auto_submit=True,
+        )
+
         # ── Process pending question ──
         pending = st.session_state.pop("pending_quick_ask", None)
         if pending and ask_fn:
