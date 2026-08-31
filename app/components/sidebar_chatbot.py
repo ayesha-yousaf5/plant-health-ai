@@ -19,20 +19,6 @@ def _get_chatbot():
         return None, str(e)
 
 
-def _speak_response(reply: str):
-    """Speak the response in Hindi if voice output is enabled."""
-    if not st.session_state.get("voice_output_enabled", False):
-        return
-    
-    try:
-        from app.components.voice import text_to_speech_hindi
-        audio_bytes = text_to_speech_hindi(reply)
-        if audio_bytes:
-            st.audio(audio_bytes, format='audio/mp3')
-    except Exception:
-        pass
-
-
 def render_sidebar_chatbot():
     """Render Krishi Mitra in the sidebar."""
 
@@ -85,6 +71,11 @@ def render_sidebar_chatbot():
                 f'🔍 Looking at: <strong>{crop_label} — {disease_label}</strong></div>',
                 unsafe_allow_html=True,
             )
+
+        # ── Play pending voice response ──
+        pending_audio = st.session_state.pop("pending_voice_bytes", None)
+        if pending_audio:
+            st.audio(pending_audio, format='audio/mp3')
 
         # ── Chat messages ──
         history = st.session_state.sidebar_chat_history
@@ -158,7 +149,15 @@ def render_sidebar_chatbot():
             st.session_state.sidebar_chat_history.append({
                 "role": "assistant", "content": reply
             })
-            _speak_response(reply)
+            # Store voice audio for next render cycle (before rerun)
+            if st.session_state.get("voice_output_enabled", False):
+                try:
+                    from app.components.voice import text_to_speech_hindi
+                    audio_bytes = text_to_speech_hindi(reply)
+                    if audio_bytes:
+                        st.session_state["pending_voice_bytes"] = audio_bytes
+                except Exception:
+                    pass
             st.rerun()
         elif pending and chat_error:
             st.session_state.sidebar_chat_history.append({
@@ -170,7 +169,7 @@ def render_sidebar_chatbot():
         # ── Voice output toggle ──
         if "voice_output_enabled" not in st.session_state:
             st.session_state.voice_output_enabled = False
-        
+
         voice_col1, voice_col2 = st.columns([2, 1])
         with voice_col1:
             st.markdown(
